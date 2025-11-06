@@ -1,25 +1,29 @@
 # MagiQuest ESP32 Project - AI Coding Agent Instructions
 
 ## Project Overview
-This is an ESP32-based magical interactive system that responds to MagiQuest IR wands with synchronized LED lighting, servo-controlled mechanical actions, and tone-based audio playback. The system creates immersive experiences by detecting specific wand IDs and triggering unique audiovisual responses for each character.
+This is an ESP32-based magical interactive system that responds to **MagiQuest IR wands or RFID bands** with synchronized LED lighting, servo-controlled mechanical actions, and tone-based audio playback. The system creates immersive experiences by detecting specific wand/band IDs and triggering unique audiovisual responses for each character.
 
 ## Architecture & Component Structure
 
 ### Modular Library Design
 Components are organized as self-contained libraries in `lib/` with clear separation of concerns:
-- **IRControl**: MagiQuest protocol IR decoding with custom bit manipulation
+- **IRControl**: MagiQuest protocol IR decoding with custom bit manipulation (legacy/optional)
+- **RFIDControl**: MFRC522-based RFID band detection (alternative to IR)
 - **LEDControl**: FastLED-based RGB strip control with color sequences  
 - **ServoControl**: Physical mechanism control (lid/door movement)
 - **AudioControl**: ESP32 DAC-based tone generation with mathematical synthesis
 
 ### Main Control Flow Pattern (`src/main.cpp`)
 ```cpp
-// Core loop: IR detection → cooldown check → character dispatch → multi-component activation
-uint32_t wand_id = loop_ir();
-if (wand_id != 0 && current_time - last_activation >= COOLDOWN_PERIOD) {
+// Core loop: IR/RFID detection → cooldown check → character dispatch → multi-component activation
+uint32_t wand_id = loop_ir();     // IR version
+// OR
+uint32_t band_id = loop_rfid();   // RFID version
+
+if (id != 0 && current_time - last_activation >= COOLDOWN_PERIOD) {
     set_color(character_color);          // LEDs
     delay(50);                           // Power spike prevention
-    play_character_sound(wand_id);       // Audio (tone-based)
+    play_character_sound(id);            // Audio (tone-based)
     toggle_lid();                        // Servo
 }
 ```
@@ -27,9 +31,20 @@ if (wand_id != 0 && current_time - last_activation >= COOLDOWN_PERIOD) {
 ## Hardware Integration Patterns
 
 ### Pin Assignments (defined in component headers)
+**IR Version (Default):**
 - IR Receiver: GPIO14 (`IR_RECEIVE_PIN`)
 - LED Strip: GPIO3 (`DATA_PIN`) 
 - Servo Motor: GPIO18 (`SERVO_PIN`)
+- Audio Output: GPIO25 (ESP32 DAC Channel 1)
+
+**RFID Version (Alternative):**
+- RFID SDA/SS: GPIO5 (`RFID_SS_PIN`)
+- RFID RST: GPIO22 (`RFID_RST_PIN`)
+- RFID SCK: GPIO18 (hardware SPI - required)
+- RFID MOSI: GPIO23 (hardware SPI - required)
+- RFID MISO: GPIO19 (hardware SPI - required)
+- LED Strip: GPIO3 (`DATA_PIN`)
+- Servo Motor: GPIO21 (`SERVO_PIN` - moved to avoid SPI conflict)
 - Audio Output: GPIO25 (ESP32 DAC Channel 1)
 
 ### Power Management Strategy
@@ -63,10 +78,17 @@ When adding new wands/characters:
 
 ## Project-Specific Conventions
 
-### IR Protocol Handling
+### IR Protocol Handling (IRControl)
 - Uses custom MagiQuest protocol decoder (`decodeMagiQuest()`)
 - Wand IDs are extracted from 64-bit payload via union structure manipulation
 - Protocol constants defined for timing analysis (MAGIQUEST_PERIOD, MARK/SPACE values)
+
+### RFID Protocol Handling (RFIDControl)
+- Uses MFRC522 library for Mifare RFID cards
+- Band UIDs extracted from 4-byte (or 7/10-byte) card UIDs
+- Union structure for flexible UID access (uint32_t or byte array)
+- Supports Mifare Classic 1K/4K and Ultralight cards (most common for wristbands)
+- Read range: 2-4cm (close proximity required)
 
 ### Memory Management for Audio
 - Audio generated as pure sine wave tones in real-time
@@ -87,7 +109,8 @@ When adding new wands/characters:
 
 ### External Dependencies
 - `FastLED@^3.10.3`: RGB LED control with CRGB color objects
-- `IRremote@^4.5.0`: Base IR protocol handling (extended for MagiQuest)
+- `IRremote@^4.5.0`: Base IR protocol handling (extended for MagiQuest) - IR version only
+- `MFRC522@^1.4.11`: RFID RC522 reader support - RFID version only
 - `ESP32Servo@^3.0.9`: Hardware servo control with position tracking
 
 ### Debug & Monitoring
@@ -96,8 +119,11 @@ When adding new wands/characters:
 - Use Serial Monitor to verify IR detection and troubleshoot hardware
 
 ## Key Files for Understanding System
-- `src/main.cpp`: Central orchestration and character behavior mapping
+- `src/main.cpp`: Central orchestration and character behavior mapping (IR version)
+- `src/main_rfid_example.cpp`: RFID version example implementation
 - `lib/IRControl/IRControl.cpp`: MagiQuest protocol implementation details
+- `lib/RFIDControl/RFIDControl.cpp`: MFRC522 RFID implementation
 - `lib/AudioControl/sounds/AllSoundsTones.h`: All tone-based sound effects
+- `docs/RFID_MIGRATION_GUIDE.md`: Complete guide for IR→RFID migration
 - `README.md`: Current system documentation and usage guide
 - `platformio.ini`: Hardware configuration and power management settings

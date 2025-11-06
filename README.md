@@ -2,10 +2,11 @@
 
 ## System Overview
 
-This ESP32-based magical interactive system responds to MagiQuest IR wands with synchronized LED lighting, servo-controlled mechanical actions, and tone-based audio playback. The system creates immersive experiences by detecting specific wand IDs and triggering unique audiovisual responses for each character.
+This ESP32-based magical interactive system responds to MagiQuest IR wands **or RFID bands** with synchronized LED lighting, servo-controlled mechanical actions, and tone-based audio playback. The system creates immersive experiences by detecting specific wand/band IDs and triggering unique audiovisual responses for each character.
 
 ### ✨ New Features
-- **Sound Variation System**: Each wand now has 3 unique sounds that cycle on each activation
+- **RFID Support**: Can now use RFID wristbands instead of IR wands (see RFID_MIGRATION_GUIDE.md)
+- **Sound Variation System**: Each wand/band now has 3 unique sounds that cycle on each activation
 - **Home Assistant Integration**: Full IoT control via WiFi/MQTT (optional)
 
 ## Features
@@ -74,11 +75,24 @@ This will generate a header file with a `play_mysound_tones()` function.
 
 ## Hardware Setup
 
-### Connections
+### IR Wand Version (Default)
 - IR Receiver → GPIO14
 - LED Strip → GPIO3
 - Servo Motor → GPIO18
 - Audio Output → GPIO25 → LM386 Amplifier → Speaker
+
+### RFID Band Version (Alternative)
+- RFID RC522 SDA → GPIO5
+- RFID RC522 SCK → GPIO18 (SPI)
+- RFID RC522 MOSI → GPIO23 (SPI)
+- RFID RC522 MISO → GPIO19 (SPI)
+- RFID RC522 RST → GPIO22
+- RFID RC522 3.3V → 3.3V (NOT 5V!)
+- LED Strip → GPIO3
+- Servo Motor → GPIO21 (moved from 18 to avoid SPI conflict)
+- Audio Output → GPIO25 → LM386 Amplifier → Speaker
+
+**See [docs/RFID_MIGRATION_GUIDE.md](docs/RFID_MIGRATION_GUIDE.md) for complete RFID setup and migration guide.**
 
 ### Power Notes
 - 50ms delay between LED and servo activation prevents brown-out
@@ -125,6 +139,7 @@ lib/AudioControl/
 
 ## Additional Documentation
 
+- **[docs/RFID_MIGRATION_GUIDE.md](docs/RFID_MIGRATION_GUIDE.md)** - Complete guide to migrating from IR wands to RFID bands
 - **[HOME_ASSISTANT_SETUP.md](HOME_ASSISTANT_SETUP.md)** - Complete guide to WiFi/MQTT/Home Assistant integration
 - **[IMPROVEMENTS_SUMMARY.md](IMPROVEMENTS_SUMMARY.md)** - Recent bug fixes and optimizations
 - `TONE_SOUNDS_GUIDE.md` - Detailed guide to tone-based audio system

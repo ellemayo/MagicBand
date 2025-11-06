@@ -1,7 +1,7 @@
 #include <Arduino.h>
 #include <DebugConfig.h>
 
-#include <RFIDControl.h>  // Changed from IRControl
+#include <IRControl.h>
 #include <LEDControl.h>
 #include <ServoControl.h>
 #include <AudioControlDFPlayer.h>
@@ -9,7 +9,7 @@
 #include <OTAControl.h>
 
 // Firmware version for tracking OTA updates
-#define FIRMWARE_VERSION "2.0.0-RFID"
+#define FIRMWARE_VERSION "1.0.1-OTA"
 #define BUILD_TIMESTAMP __DATE__ " " __TIME__
 
 // Note: Now using DFPlayer Mini for high-quality SD card audio playback
@@ -25,34 +25,34 @@ const unsigned long MAIN_LOOP_DELAY = 100;         // Main loop iteration delay
 // Cooldown management - prevent activations too close together
 unsigned long last_activation = 0;
 
-// Band configuration structure with sound variation support
-struct BandConfig {
-  uint32_t band_id;
+// Wand configuration structure with sound variation support
+struct WandConfig {
+  uint32_t wand_id;
   CRGB led_color;
   uint8_t sound_files[3];        // Array of up to 3 sound file numbers
-  uint8_t num_sounds;            // Number of sounds available for this band
+  uint8_t num_sounds;            // Number of sounds available for this wand
   uint8_t current_sound_index;   // Current position in sound rotation
 };
 
-// Centralized band configurations with sound variations
-BandConfig BAND_CONFIGS[] = {
-  // Band 1 (Blue - August) - Mystical and magical sounds
-  { BAND_1, CRGB::Blue, 
+// Centralized wand configurations with sound variations
+WandConfig WAND_CONFIGS[] = {
+  // Wand 1 (Blue - August) - Mystical and magical sounds
+  { WAND_1, CRGB::Blue, 
     { SOUND_CHIMES, SOUND_MAGIC_SPELL, SOUND_WIND_MAGIC }, 
     3, 0 },
   
-  // Band 2 (Green - Ophelia) - Nature and healing sounds
-  { BAND_2, CRGB::Green, 
+  // Wand 2 (Green - Ophelia) - Nature and healing sounds
+  { WAND_2, CRGB::Green, 
     { SOUND_SPARKLE, SOUND_HEALING_MAGIC, SOUND_HEALING_MAGIC_2 }, 
     3, 0 },
   
-  // Band 3 (Purple - Evalette) - Powerful spell sounds
-  { BAND_3, CRGB::Purple, 
+  // Wand 3 (Purple - Evalette) - Powerful spell sounds
+  { WAND_3, CRGB::Purple, 
     { SOUND_FIRE_MAGIC, SOUND_MAGIC_SPELL_2, SOUND_MAGIC_WAND }, 
     3, 0 }
 };
 
-const int NUM_BANDS = sizeof(BAND_CONFIGS) / sizeof(BAND_CONFIGS[0]);
+const int NUM_WANDS = sizeof(WAND_CONFIGS) / sizeof(WAND_CONFIGS[0]);
 
 void setup() {
 
@@ -72,16 +72,16 @@ void setup() {
   // Brief delay for Serial to stabilize (non-blocking, no wait)
   delay(100);
 
-  DEBUG_PRINTLN("\n=== MagiQuest Box (RFID) Initializing ===");
+  DEBUG_PRINTLN("\n=== MagiQuest Box Initializing ===");
   DEBUG_PRINT("Firmware Version: ");
   DEBUG_PRINTLN(FIRMWARE_VERSION);
   DEBUG_PRINT("Build Timestamp: ");
   DEBUG_PRINTLN(BUILD_TIMESTAMP);
-  DEBUG_PRINTLN("=========================================\n");
+  DEBUG_PRINTLN("==================================\n");
   DEBUG_PRINTLN("Comms enabled - beginning sensing");
 
-  // Connect RFID reader (replaces IR receiver)
-  setup_rfid();
+  // Connect IR receiver
+  setup_ir();
   
   // Connect Servo
   setup_servo();
@@ -112,7 +112,7 @@ void setup() {
     play_sound_file(SOUND_CHIMES);
   }
   
-  DEBUG_PRINTLN("MagiQuest RFID system ready!");
+  DEBUG_PRINTLN("MagiQuest system ready!");
   DEBUG_PRINT("Total startup time: ");
   DEBUG_PRINT(millis());
   DEBUG_PRINTLN("ms");
@@ -134,7 +134,7 @@ void loop() {
   // Check if system is enabled via Home Assistant
   if (!is_system_enabled()) {
     delay(MAIN_LOOP_DELAY);
-    return; // Skip band detection if disabled
+    return; // Skip wand detection if disabled
   }
   
   // Apply Home Assistant brightness setting
@@ -143,8 +143,8 @@ void loop() {
     FastLED.setBrightness(ha_brightness);
   }
   
-  // Check for RFID input (replaces IR wand detection)
-  uint32_t band_id = loop_rfid();
+  // Check for IR input
+  uint32_t wand_id = loop_ir();
   
   // Get current time
   unsigned long current_time = millis();
@@ -152,22 +152,22 @@ void loop() {
   // Use HA-controlled cooldown period
   unsigned long cooldown = get_ha_cooldown();
   
-  // Check if enough time has passed since last activation (applies to all bands)
-  if (band_id != 0 && current_time - last_activation >= cooldown) {
-    // Search for matching band configuration
-    bool band_found = false;
-    for (int i = 0; i < NUM_BANDS; i++) {
-      if (band_id == BAND_CONFIGS[i].band_id) {
-        DEBUG_PRINT("RFID Band activated (ID: 0x");
-        DEBUG_PRINT(band_id, HEX);
+  // Check if enough time has passed since last activation (applies to all wands)
+  if (wand_id != 0 && current_time - last_activation >= cooldown) {
+    // Search for matching wand configuration
+    bool wand_found = false;
+    for (int i = 0; i < NUM_WANDS; i++) {
+      if (wand_id == WAND_CONFIGS[i].wand_id) {
+        DEBUG_PRINT("Wand activated (ID: ");
+        DEBUG_PRINT(wand_id);
         DEBUG_PRINT(") - Sound variation: ");
-        DEBUG_PRINTLN(BAND_CONFIGS[i].current_sound_index + 1);
+        DEBUG_PRINTLN(WAND_CONFIGS[i].current_sound_index + 1);
         
-        set_color(BAND_CONFIGS[i].led_color);
+        set_color(WAND_CONFIGS[i].led_color);
         // Removed POWER_SETTLE_DELAY - not needed with proper power supply
         
         // Play current sound variation
-        uint8_t sound_file = BAND_CONFIGS[i].sound_files[BAND_CONFIGS[i].current_sound_index];
+        uint8_t sound_file = WAND_CONFIGS[i].sound_files[WAND_CONFIGS[i].current_sound_index];
         if (dfplayer_is_ready()) {
           play_sound_file(sound_file);
         }
@@ -176,27 +176,27 @@ void loop() {
         delay(150); // Reduced from 300ms
         
         // Rotate to next sound for next activation
-        BAND_CONFIGS[i].current_sound_index = 
-          (BAND_CONFIGS[i].current_sound_index + 1) % BAND_CONFIGS[i].num_sounds;
+        WAND_CONFIGS[i].current_sound_index = 
+          (WAND_CONFIGS[i].current_sound_index + 1) % WAND_CONFIGS[i].num_sounds;
         
         toggle_lid();
         
-        // Publish band activation to Home Assistant
-        publish_wand_activation(band_id);  // Reuses existing HA function
+        // Publish wand activation to Home Assistant
+        publish_wand_activation(wand_id);
         
-        band_found = true;
+        wand_found = true;
         break;
       }
     }
     
-    if (!band_found) {
-      DEBUG_PRINT("Unknown RFID Band ID: 0x");
-      DEBUG_PRINTLN(band_id, HEX);
+    if (!wand_found) {
+      DEBUG_PRINT("Unknown wand ID: ");
+      DEBUG_PRINTLN(wand_id);
     }
     
-    last_activation = current_time; // Update last activation time for any band
-  } else if (band_id != 0) {
-    DEBUG_PRINTLN("Band on cooldown - ignoring");
+    last_activation = current_time; // Update last activation time for any wand
+  } else if (wand_id != 0) {
+    DEBUG_PRINTLN("Wand on cooldown - ignoring");
   }
   
   // Show cooldown visual feedback if in cooldown period
