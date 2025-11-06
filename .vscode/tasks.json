@@ -1,0 +1,76 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "PlatformIO Build",
+			"type": "shell",
+			"command": "C:\\Users\\ellem\\.platformio\\penv\\Scripts\\platformio.exe",
+			"args": [
+				"run"
+			],
+			"group": "build"
+		},
+		{
+			"label": "PlatformIO Upload (USB)",
+			"type": "shell",
+			"command": "C:\\Users\\ellem\\.platformio\\penv\\Scripts\\platformio.exe",
+			"args": [
+				"run",
+				"--target",
+				"upload"
+			],
+			"group": "build",
+			"problemMatcher": [],
+			"presentation": {
+				"reveal": "always",
+				"panel": "shared"
+			}
+		},
+		{
+			"label": "PlatformIO Upload (OTA)",
+			"type": "shell",
+			"command": "C:\\Users\\ellem\\.platformio\\penv\\Scripts\\platformio.exe",
+			"args": [
+				"run",
+				"-e",
+				"esp32dev-ota",
+				"--target",
+				"upload"
+			],
+			"group": "build",
+			"problemMatcher": [],
+			"presentation": {
+				"reveal": "always",
+				"panel": "shared"
+			}
+		},
+		{
+			"label": "PlatformIO Clean",
+			"type": "shell",
+			"command": "C:\\Users\\ellem\\.platformio\\penv\\Scripts\\platformio.exe",
+			"args": [
+				"run",
+				"--target",
+				"clean"
+			],
+			"group": "build"
+		},
+		{
+			"label": "PlatformIO Monitor",
+			"type": "shell",
+			"command": "C:\\Users\\ellem\\.platformio\\penv\\Scripts\\platformio.exe",
+			"args": [
+				"device",
+				"monitor",
+				"--baud",
+				"115200"
+			],
+			"problemMatcher": [],
+			"isBackground": true,
+			"presentation": {
+				"reveal": "always",
+				"panel": "dedicated"
+			}
+		}
+	]
+}
