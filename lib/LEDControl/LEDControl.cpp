@@ -124,3 +124,58 @@ void cooldown_pulse() {
     FastLED.show();
   }
 }
+
+// Chase animation - light moves along the strip
+// color: The color to use for the chase effect
+// speed_ms: Delay between each step (lower = faster)
+// num_cycles: How many times to run the full chase
+void chase_animation(CRGB color, int speed_ms, int num_cycles) {
+  DEBUG_PRINTLN("Starting chase animation");
+  
+  // Save original brightness
+  uint8_t original_brightness = FastLED.getBrightness();
+  FastLED.setBrightness(LED_DEFAULT_BRIGHTNESS);
+  
+  for (int cycle = 0; cycle < num_cycles; cycle++) {
+    // Forward chase
+    for (int i = 0; i < NUM_LEDS; i++) {
+      // Turn off all LEDs
+      fill_solid(leds, NUM_LEDS, CRGB::Black);
+      
+      // Light up current LED and a trailing tail
+      leds[i] = color;
+      if (i > 0) leds[i-1] = color; // Tail 1
+      leds[i-1].fadeToBlackBy(128);
+      if (i > 1) leds[i-2] = color; // Tail 2
+      leds[i-2].fadeToBlackBy(192);
+      
+      FastLED.show();
+      delay(speed_ms);
+    }
+    
+    // Optional: Reverse chase
+    for (int i = NUM_LEDS - 1; i >= 0; i--) {
+      // Turn off all LEDs
+      fill_solid(leds, NUM_LEDS, CRGB::Black);
+      
+      // Light up current LED and a trailing tail
+      leds[i] = color;
+      if (i < NUM_LEDS - 1) leds[i+1] = color; // Tail 1
+      leds[i+1].fadeToBlackBy(128);
+      if (i < NUM_LEDS - 2) leds[i+2] = color; // Tail 2
+      leds[i+2].fadeToBlackBy(192);
+      
+      FastLED.show();
+      delay(speed_ms);
+    }
+  }
+  
+  // Clear strip
+  fill_solid(leds, NUM_LEDS, CRGB::Black);
+  FastLED.show();
+  
+  // Restore original brightness
+  FastLED.setBrightness(original_brightness);
+  
+  DEBUG_PRINTLN("Chase animation complete");
+}
