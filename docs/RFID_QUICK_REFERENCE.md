@@ -19,6 +19,8 @@ ID Source: Wand transmits MagiQuest protocol
                         [ESP32 GPIO5,18,19,22,23]
 Detection: Physical proximity, 2-4cm range
 ID Source: Card's permanent UID chip
+Audio: DFPlayer Mini on GPIO16/17 (UART)
+LEDs: FastLED on GPIO13
 ```
 
 ## Pin Wiring Diagram
@@ -36,13 +38,13 @@ ESP32                          RC522 RFID Reader
 │  3.3V         ●──┼──────────┼● 3.3V        │
 │  GND          ●──┼──────────┼● GND         │
 │                  │          │              │
-│  GPIO3  (LED) ●──┼──→ LED Strip            │
-│  GPIO21 (SRV) ●──┼──→ Servo Motor          │
-│  GPIO25 (DAC) ●──┼──→ Audio Out            │
+│  GPIO13 (LED) ●──┼──→ LED Strip            │
+│  GPIO16 (RX)  ●──┼──→ DFPlayer TX          │
+│  GPIO17 (TX)  ●──┼──→ DFPlayer RX          │
 └──────────────────┘          └──────────────┘
 
 ⚠️  IMPORTANT: RC522 is 3.3V ONLY! Do NOT use 5V!
-⚠️  GPIO18 is used by SPI - Servo MUST move to GPIO21
+⚠️  No servo used in this configuration
 ```
 
 ## Component Library Architecture
@@ -118,10 +120,11 @@ if (wand_id == WAND_1)          if (band_id == BAND_1)
 | Symptom | Cause | Solution |
 |---------|-------|----------|
 | "Firmware Version: 0x00" | Reader not detected | Check wiring, especially SPI pins |
-| Servo doesn't work | GPIO18 conflict | Move servo to GPIO21 |
 | Cards not reading | Wrong card type | Use Mifare Classic 1K or Ultralight |
 | System crashes on scan | 5V on 3.3V pin | **CRITICAL**: Use 3.3V only! |
 | Unknown band ID | UID not configured | Scan card, note UID, update BAND_X |
+| LEDs don't work | Wrong DATA_PIN | Verify GPIO13 in LEDControl.h |
+| No audio | DFPlayer issue | Check GPIO16/17 wiring, SD card |
 
 ## Getting Started (5 Steps)
 

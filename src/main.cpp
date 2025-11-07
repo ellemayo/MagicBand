@@ -9,7 +9,7 @@
 #include <OTAControl.h>
 
 // Firmware version for tracking OTA updates
-#define FIRMWARE_VERSION "2.0.0-RFID"
+#define FIRMWARE_VERSION "1.0.0-RFID"
 #define BUILD_TIMESTAMP __DATE__ " " __TIME__
 
 // Note: Now using DFPlayer Mini for high-quality SD card audio playback

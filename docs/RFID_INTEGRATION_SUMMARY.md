@@ -98,7 +98,8 @@ Only 4 simple substitutions needed:
 **RFID Version:**
 - 5 GPIO pins (GPIO5, 18, 19, 22, 23)
 - Uses hardware SPI (SCK, MISO, MOSI required on specific pins)
-- GPIO18 conflict with servo (move servo to GPIO21)
+- No conflicts with LED (GPIO13) or DFPlayer (GPIO16/17)
+- No servo in your configuration
 
 ### Power Requirements
 **IR Receiver:** ~5mA continuous  

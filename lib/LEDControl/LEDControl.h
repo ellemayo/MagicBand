@@ -4,8 +4,8 @@
 #include <FastLED.h>
 
 // LED strip configuration
-#define NUM_LEDS 24
-#define DATA_PIN 3
+#define NUM_LEDS 17
+#define DATA_PIN 13
 
 // LED brightness and timing constants
 #define LED_DEFAULT_BRIGHTNESS 80

@@ -19,6 +19,12 @@ The RC522 uses SPI communication with the following pin connections:
 | RST       | GPIO22    | Reset (configurable) |
 | 3.3V      | 3.3V      | Power (DO NOT USE 5V!) |
 
+**Other Components in Your System:**
+- LED Strip: GPIO13
+- DFPlayer TX: GPIO16 (ESP32 RX)
+- DFPlayer RX: GPIO17 (ESP32 TX)
+- No servo used
+
 **IMPORTANT**: The RC522 is a 3.3V device. Do not connect it to 5V or it will be damaged!
 
 ### Pin Configuration

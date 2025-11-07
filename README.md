@@ -88,9 +88,10 @@ This will generate a header file with a `play_mysound_tones()` function.
 - RFID RC522 MISO → GPIO19 (SPI)
 - RFID RC522 RST → GPIO22
 - RFID RC522 3.3V → 3.3V (NOT 5V!)
-- LED Strip → GPIO3
-- Servo Motor → GPIO21 (moved from 18 to avoid SPI conflict)
-- Audio Output → GPIO25 → LM386 Amplifier → Speaker
+- LED Strip → GPIO13
+- DFPlayer TX → GPIO16 (ESP32 RX)
+- DFPlayer RX → GPIO17 (ESP32 TX)
+- No servo in this configuration
 
 **See [docs/RFID_MIGRATION_GUIDE.md](docs/RFID_MIGRATION_GUIDE.md) for complete RFID setup and migration guide.**
 

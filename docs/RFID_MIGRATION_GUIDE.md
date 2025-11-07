@@ -33,25 +33,36 @@ IRQ   -> (not connected)
 GND   -> GND
 RST   -> GPIO22 (or any available GPIO - configurable)
 3.3V  -> 3.3V
+
+Other Components:
+-----------------
+LED Strip   -> GPIO13 (FastLED DATA_PIN)
+DFPlayer TX -> GPIO16 (ESP32 Serial2 RX)
+DFPlayer RX -> GPIO17 (ESP32 Serial2 TX)
 ```
 
 **CRITICAL**: The RC522 is a 3.3V device. Do NOT connect to 5V!
 
 ### Pin Conflicts to Consider
 
-The default RFID pins may conflict with existing components:
-- **GPIO18**: Used by both SPI SCK (RFID) and Servo (default)
-  - **Solution**: Move servo to different pin (e.g., GPIO21) and update `ServoControl.h`
-  - The example already has servo on GPIO18, so if using hardware SPI, you'll need to change one
+**Good News**: Your configuration has no conflicts!
+- **GPIO18**: Used by SPI SCK (RFID) - no conflict since you're not using servo
+- **GPIO13**: LED strip - no conflict with RFID
+- **GPIO16/17**: DFPlayer UART - no conflict with RFID
 
-**Recommended Pin Configuration:**
+**Your Pin Configuration:**
 ```cpp
 // In RFIDControl.h
 #define RFID_SS_PIN   5   // SDA/SS
 #define RFID_RST_PIN  22  // Reset
 
-// In ServoControl.h (if needed)
-#define SERVO_PIN 21      // Changed from 18 to avoid SPI conflict
+// In LEDControl.h
+#define DATA_PIN 13       // LED strip
+
+// In AudioControlDFPlayer (uses Serial2)
+// RX: GPIO16, TX: GPIO17
+
+// No servo in your project
 ```
 
 ## Software Migration Steps
@@ -207,13 +218,8 @@ Or use VS Code tasks:
 - Check serial monitor for "Unsupported RFID type" messages
 - Increase antenna gain (already maxed in code)
 
-### Servo Conflict
-**Symptom**: Servo doesn't work or RFID doesn't work
-
-**Solutions**:
-- Both use GPIO18 by default - change one of them
-- Recommended: Move servo to GPIO21
-- Update `SERVO_PIN` in `lib/ServoControl/ServoControl.h`
+### No Servo in Your Configuration
+**Note**: Since you're not using a servo, there are no pin conflicts with the RFID reader's SPI pins. Your GPIO13 LED strip and GPIO16/17 DFPlayer are completely independent of the RFID system.
 
 ### Wrong UIDs Detected
 **Symptom**: System detects band but doesn't recognize it

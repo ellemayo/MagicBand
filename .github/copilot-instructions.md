@@ -43,9 +43,10 @@ if (id != 0 && current_time - last_activation >= COOLDOWN_PERIOD) {
 - RFID SCK: GPIO18 (hardware SPI - required)
 - RFID MOSI: GPIO23 (hardware SPI - required)
 - RFID MISO: GPIO19 (hardware SPI - required)
-- LED Strip: GPIO3 (`DATA_PIN`)
-- Servo Motor: GPIO21 (`SERVO_PIN` - moved to avoid SPI conflict)
-- Audio Output: GPIO25 (ESP32 DAC Channel 1)
+- LED Strip: GPIO13 (`DATA_PIN`)
+- DFPlayer TX: GPIO16 (ESP32 Serial2 RX)
+- DFPlayer RX: GPIO17 (ESP32 Serial2 TX)
+- No servo in this configuration
 
 ### Power Management Strategy
 - **Critical**: 50ms delay between LED and servo activation prevents brown-out
