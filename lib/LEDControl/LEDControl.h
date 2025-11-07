@@ -22,5 +22,6 @@ void startup_light_sequence();
 void turn_off_leds(); // Turn off all LEDs
 void fade_out_leds(); // Fade out LEDs gradually
 void cooldown_pulse(); // Subtle pulse effect during cooldown
+void chase_animation(CRGB color, int speed_ms = 50, int num_cycles = 3); // Chase animation effect
 
 #endif
