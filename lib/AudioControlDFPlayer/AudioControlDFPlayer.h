@@ -13,34 +13,25 @@
 // Files are sorted alphabetically by the prepare_sd_card.ps1 script
 // Currently using root directory (no folders)
 //
-// File order based on alphabetical sorting:
-// 0001_box_closing.mp3      -> Track 1
-// 0002_box_opening.mp3      -> Track 2
-// 0003_chimes.mp3           -> Track 3
-// 0004_fire-magic.mp3       -> Track 4
-// 0005_healing-magic.mp3    -> Track 5
-// 0006_healing-magic-2.mp3  -> Track 6
-// 0007_magic-spell.mp3      -> Track 7
-// 0008_magic-spell-2.mp3    -> Track 8
-// 0009_magic-wand.mp3       -> Track 9
-// 0010_sparkle.mp3          -> Track 10
-// 0011_swoosh.mp3           -> Track 11
-// 0012_wand.mp3             -> Track 12
-// 0013_wind-magic.mp3       -> Track 13
+// File order based on alphabetical sorting of assets/mp3_for_sd/:
+// 0001_chime.mp3           -> Track 1
+// 0002_error.mp3           -> Track 2  
+// 0003_excellent.mp3       -> Track 3
+// 0004_foolish.mp3         -> Track 4
+// 0005_hello.mp3           -> Track 5
+// 0006_operational.mp3     -> Track 6
+// 0007_startours.mp3       -> Track 7
 enum SoundFile {
-  SOUND_BOX_CLOSING = 1,
-  SOUND_BOX_OPENING = 2,
-  SOUND_CHIMES = 3,
-  SOUND_FIRE_MAGIC = 4,
-  SOUND_HEALING_MAGIC = 5,
-  SOUND_HEALING_MAGIC_2 = 6,
-  SOUND_MAGIC_SPELL = 7,
-  SOUND_MAGIC_SPELL_2 = 8,
-  SOUND_MAGIC_WAND = 9,
-  SOUND_SPARKLE = 10,
-  SOUND_SWOOSH = 11,
-  SOUND_WAND = 12,
-  SOUND_WIND_MAGIC = 13
+  SOUND_CHIME = 1,
+  SOUND_ERROR = 2,
+  SOUND_EXCELLENT = 3,
+  SOUND_FOOLISH = 4,
+  SOUND_HELLO = 5,
+  SOUND_OPERATIONAL = 6,
+  SOUND_STARTOURS = 7,
+  // RFID Detection feedback sounds
+  SOUND_RFID_SUCCESS = SOUND_CHIME,      // Recognized band - chime sound
+  SOUND_RFID_FAIL = SOUND_ERROR          // Unknown band - error sound
 };
 
 // Volume settings (0-30)

@@ -179,3 +179,116 @@ void chase_animation(CRGB color, int speed_ms, int num_cycles) {
   
   DEBUG_PRINTLN("Chase animation complete");
 }
+
+// Accelerating chase - starts slow and speeds up
+// Creates excitement as detection happens
+void accelerating_chase(CRGB color) {
+  DEBUG_PRINTLN("Starting accelerating chase animation");
+  
+  // Save original brightness
+  uint8_t original_brightness = FastLED.getBrightness();
+  FastLED.setBrightness(LED_DEFAULT_BRIGHTNESS);
+  
+  // Start slow, then speed up progressively
+  int speeds[] = {150, 120, 90, 60, 40, 25, 15, 10};  // Decreasing delays = faster
+  int num_speeds = sizeof(speeds) / sizeof(speeds[0]);
+  
+  for (int speed_idx = 0; speed_idx < num_speeds; speed_idx++) {
+    int speed_ms = speeds[speed_idx];
+    
+    // Do one pass at this speed
+    for (int i = 0; i < NUM_LEDS; i++) {
+      // Turn off all LEDs
+      fill_solid(leds, NUM_LEDS, CRGB::Black);
+      
+      // Light up current LED and a trailing tail
+      leds[i] = color;
+      if (i > 0) {
+        leds[i-1] = color;
+        leds[i-1].fadeToBlackBy(128);
+      }
+      if (i > 1) {
+        leds[i-2] = color;
+        leds[i-2].fadeToBlackBy(192);
+      }
+      
+      FastLED.show();
+      delay(speed_ms);
+    }
+  }
+  
+  // Final flash at the end
+  fill_solid(leds, NUM_LEDS, color);
+  FastLED.show();
+  delay(100);
+  
+  // Restore original brightness
+  FastLED.setBrightness(original_brightness);
+  
+  DEBUG_PRINTLN("Accelerating chase complete");
+}
+
+// Fade in to a color, hold, then fade out
+// Perfect for success indication
+void fade_in_out(CRGB color, int fade_speed_ms) {
+  DEBUG_PRINTLN("Starting fade in/out animation");
+  
+  // Save original brightness
+  uint8_t original_brightness = FastLED.getBrightness();
+  
+  // Fill with color but at zero brightness
+  fill_solid(leds, NUM_LEDS, color);
+  FastLED.setBrightness(0);
+  FastLED.show();
+  
+  // Fade in
+  for (int brightness = 0; brightness <= LED_DEFAULT_BRIGHTNESS; brightness += 5) {
+    FastLED.setBrightness(brightness);
+    FastLED.show();
+    delay(fade_speed_ms);
+  }
+  
+  // Hold at full brightness
+  delay(500);
+  
+  // Fade out
+  for (int brightness = LED_DEFAULT_BRIGHTNESS; brightness >= 0; brightness -= 5) {
+    FastLED.setBrightness(brightness);
+    FastLED.show();
+    delay(fade_speed_ms);
+  }
+  
+  // Clear and restore
+  fill_solid(leds, NUM_LEDS, CRGB::Black);
+  FastLED.setBrightness(original_brightness);
+  FastLED.show();
+  
+  DEBUG_PRINTLN("Fade in/out complete");
+}
+
+// Flash a color multiple times
+// Perfect for error/fail indication
+void flash_color(CRGB color, int num_flashes, int flash_speed_ms) {
+  DEBUG_PRINTLN("Starting flash animation");
+  
+  // Save original brightness
+  uint8_t original_brightness = FastLED.getBrightness();
+  FastLED.setBrightness(LED_DEFAULT_BRIGHTNESS);
+  
+  for (int i = 0; i < num_flashes; i++) {
+    // Flash on
+    fill_solid(leds, NUM_LEDS, color);
+    FastLED.show();
+    delay(flash_speed_ms);
+    
+    // Flash off
+    fill_solid(leds, NUM_LEDS, CRGB::Black);
+    FastLED.show();
+    delay(flash_speed_ms);
+  }
+  
+  // Restore original brightness
+  FastLED.setBrightness(original_brightness);
+  
+  DEBUG_PRINTLN("Flash animation complete");
+}

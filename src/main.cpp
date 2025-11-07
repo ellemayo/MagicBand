@@ -36,19 +36,19 @@ struct BandConfig {
 
 // Centralized band configurations with sound variations
 BandConfig BAND_CONFIGS[] = {
-  // Band 1 (Blue - August) - Mystical and magical sounds
+  // Band 1 (Blue) - Hello sound
   { BAND_1, CRGB::Blue, 
-    { SOUND_CHIMES, SOUND_MAGIC_SPELL, SOUND_WIND_MAGIC }, 
+    { SOUND_HELLO, SOUND_HELLO, SOUND_HELLO }, 
     3, 0 },
   
-  // Band 2 (Green - Ophelia) - Nature and healing sounds
+  // Band 2 (Green) - Star Tours sound
   { BAND_2, CRGB::Green, 
-    { SOUND_SPARKLE, SOUND_HEALING_MAGIC, SOUND_HEALING_MAGIC_2 }, 
+    { SOUND_STARTOURS, SOUND_STARTOURS, SOUND_STARTOURS }, 
     3, 0 },
   
-  // Band 3 (Purple - Evalette) - Powerful spell sounds
+  // Band 3 (Purple) - Operational sound
   { BAND_3, CRGB::Purple, 
-    { SOUND_FIRE_MAGIC, SOUND_MAGIC_SPELL_2, SOUND_MAGIC_WAND }, 
+    { SOUND_OPERATIONAL, SOUND_OPERATIONAL, SOUND_OPERATIONAL }, 
     3, 0 }
 };
 
@@ -107,9 +107,9 @@ void setup() {
   // OTA Setup (must be after WiFi is connected)
   setup_ota();
   
-  // Play startup sound if DFPlayer is ready (using chimes as startup sound)
+  // Play startup sound if DFPlayer is ready (using chime as startup sound)
   if (dfplayer_is_ready()) {
-    play_sound_file(SOUND_CHIMES);
+    play_sound_file(SOUND_CHIME);
   }
   
   DEBUG_PRINTLN("MagiQuest RFID system ready!");
