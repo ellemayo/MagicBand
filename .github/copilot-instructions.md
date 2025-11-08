@@ -1,13 +1,13 @@
-# MagiQuest ESP32 Project - AI Coding Agent Instructions
+# MagicBand ESP32 Project - AI Coding Agent Instructions
 
 ## Project Overview
-This is an ESP32-based magical interactive system that responds to **MagiQuest IR wands or RFID bands** with synchronized LED lighting, servo-controlled mechanical actions, and tone-based audio playback. The system creates immersive experiences by detecting specific wand/band IDs and triggering unique audiovisual responses for each character.
+This is an ESP32-based magical interactive system that responds to **RFID bands or IR wands** with synchronized LED lighting, servo-controlled mechanical actions, and tone-based audio playback. The system creates immersive experiences by detecting specific wand/band IDs and triggering unique audiovisual responses for each character.
 
 ## Architecture & Component Structure
 
 ### Modular Library Design
 Components are organized as self-contained libraries in `lib/` with clear separation of concerns:
-- **IRControl**: MagiQuest protocol IR decoding with custom bit manipulation (legacy/optional)
+- **IRControl**: IR wand protocol decoding with custom bit manipulation (legacy/optional)
 - **RFIDControl**: MFRC522-based RFID band detection (alternative to IR)
 - **LEDControl**: FastLED-based RGB strip control with color sequences  
 - **ServoControl**: Physical mechanism control (lid/door movement)
@@ -80,7 +80,7 @@ When adding new wands/characters:
 ## Project-Specific Conventions
 
 ### IR Protocol Handling (IRControl)
-- Uses custom MagiQuest protocol decoder (`decodeMagiQuest()`)
+- Uses custom IR wand protocol decoder (`decodeMagiQuest()`)
 - Wand IDs are extracted from 64-bit payload via union structure manipulation
 - Protocol constants defined for timing analysis (MAGIQUEST_PERIOD, MARK/SPACE values)
 
@@ -110,7 +110,7 @@ When adding new wands/characters:
 
 ### External Dependencies
 - `FastLED@^3.10.3`: RGB LED control with CRGB color objects
-- `IRremote@^4.5.0`: Base IR protocol handling (extended for MagiQuest) - IR version only
+- `IRremote@^4.5.0`: Base IR protocol handling (extended for custom protocol) - IR version only
 - `MFRC522@^1.4.11`: RFID RC522 reader support - RFID version only
 - `ESP32Servo@^3.0.9`: Hardware servo control with position tracking
 
@@ -122,7 +122,7 @@ When adding new wands/characters:
 ## Key Files for Understanding System
 - `src/main.cpp`: Central orchestration and character behavior mapping (IR version)
 - `src/main_rfid_example.cpp`: RFID version example implementation
-- `lib/IRControl/IRControl.cpp`: MagiQuest protocol implementation details
+- `lib/IRControl/IRControl.cpp`: IR protocol implementation details
 - `lib/RFIDControl/RFIDControl.cpp`: MFRC522 RFID implementation
 - `lib/AudioControl/sounds/AllSoundsTones.h`: All tone-based sound effects
 - `docs/RFID_MIGRATION_GUIDE.md`: Complete guide for IR→RFID migration

@@ -185,15 +185,15 @@ void publish_discovery_configs() {
   
   // Switch entity for system enable/disable
   doc.clear();
-  doc["name"] = "MagiQuest System";
-  doc["unique_id"] = "magiquest_system";
+  doc["name"] = "MagicBand System";
+  doc["unique_id"] = "magicband_system";
   doc["state_topic"] = MQTT_STATE_TOPIC;
   doc["command_topic"] = MQTT_COMMAND_TOPIC;
   doc["payload_on"] = "ON";
   doc["payload_off"] = "OFF";
   doc["value_template"] = "{{ value_json.enabled }}";
-  doc["device"]["identifiers"][0] = "magiquest_box";
-  doc["device"]["name"] = "MagiQuest Box";
+  doc["device"]["identifiers"][0] = "magicband";
+  doc["device"]["name"] = "MagicBand";
   doc["device"]["manufacturer"] = "Custom";
   doc["device"]["model"] = "ESP32";
   
@@ -204,13 +204,13 @@ void publish_discovery_configs() {
   // Number entity for LED brightness
   doc.clear();
   doc["name"] = "LED Brightness";
-  doc["unique_id"] = "magiquest_brightness";
+  doc["unique_id"] = "magicband_brightness";
   doc["state_topic"] = MQTT_STATE_TOPIC;
   doc["command_topic"] = MQTT_BRIGHTNESS_TOPIC "/set";
   doc["value_template"] = "{{ value_json.brightness }}";
   doc["min"] = 0;
   doc["max"] = 255;
-  doc["device"]["identifiers"][0] = "magiquest_box";
+  doc["device"]["identifiers"][0] = "magicband";
   
   serializeJson(doc, buffer);
   snprintf(topic, sizeof(topic), "%s/number/%s_brightness/config", HA_DISCOVERY_PREFIX, MQTT_CLIENT_ID);
@@ -219,14 +219,14 @@ void publish_discovery_configs() {
   // Number entity for cooldown time
   doc.clear();
   doc["name"] = "Cooldown Time";
-  doc["unique_id"] = "magiquest_cooldown";
+  doc["unique_id"] = "magicband_cooldown";
   doc["state_topic"] = MQTT_STATE_TOPIC;
   doc["command_topic"] = MQTT_COOLDOWN_TOPIC "/set";
   doc["value_template"] = "{{ value_json.cooldown }}";
   doc["unit_of_measurement"] = "ms";
   doc["min"] = 1000;
   doc["max"] = 60000;
-  doc["device"]["identifiers"][0] = "magiquest_box";
+  doc["device"]["identifiers"][0] = "magicband";
   
   serializeJson(doc, buffer);
   snprintf(topic, sizeof(topic), "%s/number/%s_cooldown/config", HA_DISCOVERY_PREFIX, MQTT_CLIENT_ID);
@@ -235,10 +235,10 @@ void publish_discovery_configs() {
   // Sensor for last wand
   doc.clear();
   doc["name"] = "Last Wand";
-  doc["unique_id"] = "magiquest_last_wand";
+  doc["unique_id"] = "magicband_last_wand";
   doc["state_topic"] = MQTT_WAND_TOPIC;
   doc["value_template"] = "{{ value_json.wand_id }}";
-  doc["device"]["identifiers"][0] = "magiquest_box";
+  doc["device"]["identifiers"][0] = "magicband";
   
   serializeJson(doc, buffer);
   snprintf(topic, sizeof(topic), "%s/sensor/%s_last_wand/config", HA_DISCOVERY_PREFIX, MQTT_CLIENT_ID);
@@ -247,10 +247,10 @@ void publish_discovery_configs() {
   // Sensor for activation count
   doc.clear();
   doc["name"] = "Activation Count";
-  doc["unique_id"] = "magiquest_activations";
+  doc["unique_id"] = "magicband_activations";
   doc["state_topic"] = MQTT_STATS_TOPIC;
   doc["value_template"] = "{{ value_json.activations }}";
-  doc["device"]["identifiers"][0] = "magiquest_box";
+  doc["device"]["identifiers"][0] = "magicband";
   
   serializeJson(doc, buffer);
   snprintf(topic, sizeof(topic), "%s/sensor/%s_activations/config", HA_DISCOVERY_PREFIX, MQTT_CLIENT_ID);

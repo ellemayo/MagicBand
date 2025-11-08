@@ -52,18 +52,18 @@ Once connected, the following entities will automatically appear in Home Assista
 
 | Entity | Type | Description | Range |
 |--------|------|-------------|-------|
-| `switch.magiquest_system` | Switch | Enable/disable wand detection | ON/OFF |
-| `number.magiquest_brightness` | Number | LED strip brightness | 0-255 |
-| `number.magiquest_cooldown` | Number | Cooldown time between activations | 1000-60000 ms |
+| `switch.magicband_system` | Switch | Enable/disable wand detection | ON/OFF |
+| `number.magicband_brightness` | Number | LED strip brightness | 0-255 |
+| `number.magicband_cooldown` | Number | Cooldown time between activations | 1000-60000 ms |
 
 ### Sensors (Read-only)
 
 | Entity | Type | Description |
 |--------|------|-------------|
-| `sensor.magiquest_last_wand` | Sensor | ID and name of last wand used |
-| `sensor.magiquest_activations` | Sensor | Total wand activation count |
-| `sensor.magiquest_uptime` | Sensor | System uptime in seconds |
-| `sensor.magiquest_lid_state` | Binary Sensor | Current lid position (open/closed) |
+| `sensor.magicband_last_wand` | Sensor | ID and name of last wand used |
+| `sensor.magicband_activations` | Sensor | Total wand activation count |
+| `sensor.magicband_uptime` | Sensor | System uptime in seconds |
+| `sensor.magicband_lid_state` | Binary Sensor | Current lid position (open/closed) |
 
 ---
 
@@ -73,38 +73,38 @@ Once connected, the following entities will automatically appear in Home Assista
 
 ```yaml
 automation:
-  - alias: "MagiQuest Bedtime Disable"
+  - alias: "MagicBand Bedtime Disable"
     trigger:
       - platform: time
         at: "22:00:00"
     action:
       - service: switch.turn_off
         target:
-          entity_id: switch.magiquest_system
+          entity_id: switch.MagicBand_system
 ```
 
 ### Re-enable in Morning
 
 ```yaml
 automation:
-  - alias: "MagiQuest Morning Enable"
+  - alias: "MagicBand Morning Enable"
     trigger:
       - platform: time
         at: "08:00:00"
     action:
       - service: switch.turn_on
         target:
-          entity_id: switch.magiquest_system
+          entity_id: switch.MagicBand_system
 ```
 
 ### Notification on Wand Use
 
 ```yaml
 automation:
-  - alias: "MagiQuest Wand Activity Notification"
+  - alias: "MagicBand Wand Activity Notification"
     trigger:
       - platform: state
-        entity_id: sensor.magiquest_last_wand
+        entity_id: sensor.MagicBand_last_wand
     action:
       - service: notify.mobile_app
         data:
@@ -115,14 +115,14 @@ automation:
 
 ```yaml
 automation:
-  - alias: "MagiQuest Night Mode"
+  - alias: "MagicBand Night Mode"
     trigger:
       - platform: sun
         event: sunset
     action:
       - service: number.set_value
         target:
-          entity_id: number.magiquest_brightness
+          entity_id: number.MagicBand_brightness
         data:
           value: 5
 ```
@@ -131,14 +131,14 @@ automation:
 
 ```yaml
 automation:
-  - alias: "MagiQuest Day Mode"
+  - alias: "MagicBand Day Mode"
     trigger:
       - platform: sun
         event: sunrise
     action:
       - service: number.set_value
         target:
-          entity_id: number.magiquest_brightness
+          entity_id: number.MagicBand_brightness
         data:
           value: 20
 ```
@@ -149,17 +149,17 @@ automation:
 
 ```yaml
 type: entities
-title: MagiQuest Box
+title: MagicBand Box
 entities:
-  - entity: switch.magiquest_system
+  - entity: switch.MagicBand_system
     name: System Enabled
-  - entity: number.magiquest_brightness
+  - entity: number.MagicBand_brightness
     name: LED Brightness
-  - entity: number.magiquest_cooldown
+  - entity: number.MagicBand_cooldown
     name: Cooldown (ms)
-  - entity: sensor.magiquest_last_wand
+  - entity: sensor.MagicBand_last_wand
     name: Last Wand
-  - entity: sensor.magiquest_activations
+  - entity: sensor.MagicBand_activations
     name: Total Activations
 ```
 
@@ -197,13 +197,13 @@ For advanced users who want to integrate with other systems:
 
 | Topic | Direction | Description |
 |-------|-----------|-------------|
-| `homeassistant/magiquest/status` | Publish | Online/offline status |
-| `homeassistant/magiquest/command` | Subscribe | System ON/OFF commands |
-| `homeassistant/magiquest/state` | Publish | Current system state (JSON) |
-| `homeassistant/magiquest/wand` | Publish | Wand activation events (JSON) |
-| `homeassistant/magiquest/brightness/set` | Subscribe | Set LED brightness |
-| `homeassistant/magiquest/cooldown/set` | Subscribe | Set cooldown time |
-| `homeassistant/magiquest/stats` | Publish | System statistics (JSON) |
+| `homeassistant/MagicBand/status` | Publish | Online/offline status |
+| `homeassistant/MagicBand/command` | Subscribe | System ON/OFF commands |
+| `homeassistant/MagicBand/state` | Publish | Current system state (JSON) |
+| `homeassistant/MagicBand/wand` | Publish | Wand activation events (JSON) |
+| `homeassistant/MagicBand/brightness/set` | Subscribe | Set LED brightness |
+| `homeassistant/MagicBand/cooldown/set` | Subscribe | Set cooldown time |
+| `homeassistant/MagicBand/stats` | Publish | System statistics (JSON) |
 
 ---
 
@@ -222,3 +222,4 @@ The integration exposes control variables that other modules check:
 - `get_ha_brightness()` - Get current brightness setting
 - `get_ha_cooldown()` - Get current cooldown period
 - `is_auto_close_enabled()` - Check if auto-close is enabled
+

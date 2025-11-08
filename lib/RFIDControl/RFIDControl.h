@@ -16,9 +16,11 @@
 
 // RFID Band IDs (UID stored as uint32_t for easy comparison)
 // These will be extracted from the 4-byte UID of each RFID card/band
-#define BAND_1 0x12345678  // Replace with actual UID from your RFID bands
-#define BAND_2 0x23456789  // Replace with actual UID from your RFID bands
+#define BAND_1 0x27CB1805  // Replace with actual UID from your RFID bands
+#define BAND_2 0xACD1E700  // Replace with actual UID from your RFID bands
 #define BAND_3 0x34567890  // Replace with actual UID from your RFID bands
+#define BAND_4 0x45678901  // Replace with actual UID from your RFID bands
+#define BAND_5 0x56789012  // Replace with actual UID from your RFID bands
 
 // RFID band data structure
 // Stores the UID in a format compatible with the RC522 library
@@ -39,6 +41,7 @@ extern rfid_band current_band;
 // Function declarations
 void setup_rfid();
 uint32_t loop_rfid();
+void rfid_diagnostic();  // Test RFID reader health
 
 // Helper function to convert UID byte array to uint32_t
 uint32_t uid_to_uint32(uint8_t *uid_bytes, uint8_t size);

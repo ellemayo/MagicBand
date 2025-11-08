@@ -1,6 +1,6 @@
 # Migration Guide: IR Wands to RFID Bands
 
-This guide will help you transition your MagiQuest system from IR wand detection to RFID band detection.
+This guide will help you transition your MagicBand system from IR wand detection to RFID band detection.
 
 ## Overview of Changes
 
@@ -8,7 +8,7 @@ The new RFIDControl library follows the exact same architecture as IRControl, ma
 
 1. **Hardware**: RC522 RFID reader instead of IR receiver
 2. **Detection Method**: Physical proximity (2-4cm) instead of line-of-sight IR
-3. **Identifier Format**: RFID UID (hex format) instead of MagiQuest wand IDs
+3. **Identifier Format**: RFID UID (hex format) instead of MagicBand wand IDs
 4. **Pin Usage**: Uses SPI pins instead of single GPIO pin
 
 ## Hardware Setup
@@ -284,3 +284,4 @@ After successful migration:
 - **MFRC522 Library**: https://github.com/miguelbalboa/rfid
 - **ESP32 SPI Pins**: https://randomnerdtutorials.com/esp32-spi-communication-arduino/
 - **Mifare Card Types**: https://www.nxp.com/products/rfid-nfc/mifare-hf/mifare-classic:MC_41863
+

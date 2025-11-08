@@ -5,8 +5,8 @@
 #include <ArduinoOTA.h>
 
 // OTA Configuration
-#define OTA_HOSTNAME "MagiQuest-Box"
-#define OTA_PASSWORD "magiquest2025"  // Change this to your preferred password
+#define OTA_HOSTNAME "MagicBand"
+#define OTA_PASSWORD "magicband2025"  // Change this to your preferred password
 #define OTA_PORT 3232  // Default OTA port
 
 // Function declarations

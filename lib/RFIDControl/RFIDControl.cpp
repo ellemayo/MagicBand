@@ -34,10 +34,15 @@ uint32_t loop_rfid() {
     return 0;
   }
   
+  DEBUG_PRINTLN("[RFID] Card detected - attempting to read...");
+  
   // Verify if the NUID has been read
   if (!rfid.PICC_ReadCardSerial()) {
+    DEBUG_PRINTLN("[RFID] Failed to read card serial");
     return 0;
   }
+  
+  DEBUG_PRINTLN("[RFID] Card serial read successfully");
   
   // Get the RFID type
   MFRC522::PICC_Type piccType = rfid.PICC_GetType(rfid.uid.sak);
@@ -100,4 +105,37 @@ uint32_t uid_to_uint32(uint8_t *uid_bytes, uint8_t size) {
   }
   
   return result;
+}
+
+/**
+ * Diagnostic function to test RFID reader health
+ * Call this periodically to verify the reader is still responsive
+ */
+void rfid_diagnostic() {
+  DEBUG_PRINTLN("[RFID] === Diagnostic Check ===");
+  
+  // Check firmware version
+  byte version = rfid.PCD_ReadRegister(rfid.VersionReg);
+  DEBUG_PRINT("[RFID] Firmware version: 0x");
+  DEBUG_PRINTLN(version, HEX);
+  
+  if (version == 0x00 || version == 0xFF) {
+    DEBUG_PRINTLN("[RFID] WARNING: Reader not responding! Check wiring.");
+  } else {
+    DEBUG_PRINTLN("[RFID] Reader is responding normally");
+  }
+  
+  // Perform self-test
+  bool selfTestResult = rfid.PCD_PerformSelfTest();
+  if (selfTestResult) {
+    DEBUG_PRINTLN("[RFID] Self-test PASSED");
+  } else {
+    DEBUG_PRINTLN("[RFID] Self-test FAILED - may need reset");
+  }
+  
+  // Re-initialize after self-test (self-test leaves reader in bad state)
+  rfid.PCD_Init();
+  rfid.PCD_SetAntennaGain(rfid.RxGain_max);
+  
+  DEBUG_PRINTLN("[RFID] === End Diagnostic ===");
 }

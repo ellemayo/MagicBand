@@ -8,7 +8,7 @@
 │  IR Wand    │ → [point] → [IR Receiver GPIO14]
 └─────────────┘
 Detection: Line-of-sight, several meters range
-ID Source: Wand transmits MagiQuest protocol
+ID Source: Wand transmits MagicBand protocol
 ```
 
 ### RFID Band System (New)
@@ -70,7 +70,7 @@ API Pattern (identical):
 ```
 1. IR LED → IR Receiver
 2. IRremote library decodes signal
-3. Custom decodeMagiQuest() extracts wand_id
+3. Custom decodeMagicBand() extracts wand_id
 4. Return wand_id as uint32_t
 5. main.cpp matches against WAND_1, WAND_2, WAND_3
 ```
@@ -155,7 +155,7 @@ if (wand_id == WAND_1)          if (band_id == BAND_1)
 
 ## Why Keep IR?
 
-✅ **Authentic MagiQuest experience**: Original wands work  
+✅ **Authentic MagicBand experience**: Original wands work  
 ✅ **Distance**: Works from far away  
 ✅ **Lower power**: Battery-friendly  
 ✅ **Existing hardware**: If you already have wands  
@@ -178,3 +178,4 @@ Look for: "13.56MHz RFID" or "NFC Mifare Classic"
 5. Scan your cards to get UIDs
 6. Update RFIDControl.h with your UIDs
 7. Test and enjoy!
+

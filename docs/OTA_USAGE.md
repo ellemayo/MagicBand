@@ -1,7 +1,7 @@
 # OTA (Over-The-Air) Update Instructions
 
 ## Overview
-Your MagiQuest box now supports wireless firmware updates via OTA (Over-The-Air). This means you can upload new firmware without physically connecting the ESP32 to your computer via USB cable.
+Your magicband box now supports wireless firmware updates via OTA (Over-The-Air). This means you can upload new firmware without physically connecting the ESP32 to your computer via USB cable.
 
 ## Prerequisites
 - ESP32 must be powered on and connected to WiFi (OrbiMesh network)
@@ -9,8 +9,8 @@ Your MagiQuest box now supports wireless firmware updates via OTA (Over-The-Air)
 - Initial OTA-enabled firmware must be uploaded via USB (already completed)
 
 ## OTA Configuration
-- **Hostname**: `MagiQuest-Box.local`
-- **Password**: `magiquest2025`
+- **Hostname**: `MagicBand.local`
+- **Password**: `magicband2025`
 - **Port**: `3232`
 
 ## Visual Feedback During OTA Update
@@ -25,13 +25,13 @@ The LED strip provides visual feedback during OTA updates:
 ### Method 1: PlatformIO CLI (Recommended)
 From the project directory, run:
 ```powershell
-platformio run --target upload --upload-port MagiQuest-Box.local
+platformio run --target upload --upload-port MagicBand.local
 ```
 
 Or with explicit password (if prompted):
 ```powershell
-$env:PLATFORMIO_UPLOAD_FLAGS="--auth=magiquest2025"
-platformio run --target upload --upload-port MagiQuest-Box.local
+$env:PLATFORMIO_UPLOAD_FLAGS="--auth=magicband2025"
+platformio run --target upload --upload-port MagicBand.local
 ```
 
 ### Method 2: VS Code Task
@@ -43,13 +43,13 @@ platformio run --target upload --upload-port MagiQuest-Box.local
 ### Method 3: Manual esptool OTA
 If you need to manually specify all parameters:
 ```powershell
-python -m espota --ip MagiQuest-Box.local --port 3232 --auth magiquest2025 --file .pio\build\esp32dev\firmware.bin
+python -m espota --ip MagicBand.local --port 3232 --auth magicband2025 --file .pio\build\esp32dev\firmware.bin
 ```
 
 ## Troubleshooting
 
 ### Device Not Found
-If `MagiQuest-Box.local` cannot be found:
+If `MagicBand.local` cannot be found:
 1. Check Serial Monitor for the IP address (it's printed on startup)
 2. Use the IP address directly instead of hostname:
    ```powershell
@@ -65,7 +65,7 @@ If `MagiQuest-Box.local` cannot be found:
 ### Password Issues
 If password authentication fails, verify the password in `lib/OTAControl/OTAControl.h`:
 ```cpp
-#define OTA_PASSWORD "magiquest2025"
+#define OTA_PASSWORD "magicband2025"
 ```
 
 ### Still Not Working?
@@ -88,3 +88,4 @@ This will overwrite with the new firmware, maintaining OTA capability.
 
 ## First Update After USB Upload
 After the initial USB upload (which you just completed), all future updates can be done wirelessly via OTA!
+

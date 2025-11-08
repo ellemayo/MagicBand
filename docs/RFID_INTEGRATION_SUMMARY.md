@@ -65,8 +65,8 @@ Returns: 0 or wand_id           Returns: 0 or band_id
 
 ### Same Data Pattern
 ```cpp
-// IR uses union for MagiQuest protocol
-union magiquest {
+// IR uses union for MagicBand protocol
+union MagicBand {
   uint64_t llword;
   uint32_t wand_id;
   // ...
@@ -182,7 +182,7 @@ pio run --target upload
 
 ## Why Keep IR?
 
-✅ **Authentic** - real MagiQuest wands work  
+✅ **Authentic** - real MagicBand wands work  
 ✅ **Distance** - works from far away  
 ✅ **Battery friendly** - lower power consumption  
 ✅ **Existing investment** - if you already have wands  
@@ -243,3 +243,4 @@ The library is production-ready and follows ESP32/Arduino best practices.
 **Compatible With:** ESP32, Arduino Framework, PlatformIO  
 **Dependencies:** MFRC522@^1.4.11  
 **License:** Same as parent project
+

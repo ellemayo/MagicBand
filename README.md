@@ -1,8 +1,8 @@
-# MagiQuest ESP32 Interactive System
+# MagicBand ESP32 Interactive System
 
 ## System Overview
 
-This ESP32-based magical interactive system responds to MagiQuest IR wands **or RFID bands** with synchronized LED lighting, servo-controlled mechanical actions, and tone-based audio playback. The system creates immersive experiences by detecting specific wand/band IDs and triggering unique audiovisual responses for each character.
+This ESP32-based magical interactive system responds to **RFID bands** or IR wands with synchronized LED lighting, servo-controlled mechanical actions, and tone-based audio playback. The system creates immersive experiences by detecting specific wand/band IDs and triggering unique audiovisual responses for each character.
 
 ### ✨ New Features
 - **RFID Support**: Can now use RFID wristbands instead of IR wands (see RFID_MIGRATION_GUIDE.md)

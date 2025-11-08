@@ -14,10 +14,10 @@
 #define MQTT_PORT 1883
 #define MQTT_USER "smarts"
 #define MQTT_PASSWORD "uyw5khj.jqw3ZVC2tdp"
-#define MQTT_CLIENT_ID "magiquest_box"
+#define MQTT_CLIENT_ID "magicband"
 
 // MQTT Topics
-#define MQTT_BASE_TOPIC "homeassistant/magiquest"
+#define MQTT_BASE_TOPIC "homeassistant/magicband"
 #define MQTT_STATUS_TOPIC MQTT_BASE_TOPIC "/status"
 #define MQTT_COMMAND_TOPIC MQTT_BASE_TOPIC "/command"
 #define MQTT_STATE_TOPIC MQTT_BASE_TOPIC "/state"

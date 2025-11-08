@@ -1,9 +1,8 @@
 #include <Arduino.h>
 #include <DebugConfig.h>
 
-#include <RFIDControl.h>  // Changed from IRControl
+#include <RFIDControl.h>
 #include <LEDControl.h>
-#include <ServoControl.h>
 #include <AudioControlDFPlayer.h>
 #include <HomeAssistantControl.h>
 #include <OTAControl.h>
@@ -18,12 +17,13 @@
 // Timing constants
 const unsigned long COOLDOWN_PERIOD = 5000;        // 5 seconds cooldown between activations
 const unsigned long STARTUP_LIGHT_DELAY = 500;     // Delay between startup light and sound
-const unsigned long POWER_SETTLE_DELAY = 50;       // Delay after LEDs before servo to prevent brownout
-const unsigned long AUDIO_SETTLE_DELAY = 300;      // Delay after starting audio before servo (prevents audio glitches)
+const unsigned long AUDIO_SETTLE_DELAY = 150;      // Delay after starting audio
 const unsigned long MAIN_LOOP_DELAY = 100;         // Main loop iteration delay
+const unsigned long RFID_DIAGNOSTIC_INTERVAL = 30000;  // Run RFID health check every 30 seconds
 
 // Cooldown management - prevent activations too close together
 unsigned long last_activation = 0;
+unsigned long last_rfid_diagnostic = 0;
 
 // Band configuration structure with sound variation support
 struct BandConfig {
@@ -38,18 +38,28 @@ struct BandConfig {
 BandConfig BAND_CONFIGS[] = {
   // Band 1 (Blue) - Hello sound
   { BAND_1, CRGB::Blue, 
-    { SOUND_HELLO, SOUND_HELLO, SOUND_HELLO }, 
-    3, 0 },
+    { SOUND_HELLO }, 
+    1, 0 },
   
   // Band 2 (Green) - Star Tours sound
   { BAND_2, CRGB::Green, 
-    { SOUND_STARTOURS, SOUND_STARTOURS, SOUND_STARTOURS }, 
-    3, 0 },
+    { SOUND_FOOLISH }, 
+    1, 0 },
   
   // Band 3 (Purple) - Operational sound
   { BAND_3, CRGB::Purple, 
-    { SOUND_OPERATIONAL, SOUND_OPERATIONAL, SOUND_OPERATIONAL }, 
-    3, 0 }
+    { SOUND_OPERATIONAL }, 
+    1, 0 },
+
+  // Band 4 (Purple) - Operational sound
+  { BAND_4, CRGB::Purple, 
+    { SOUND_OPERATIONAL }, 
+    1, 0 },
+
+  // Band 5 (Purple) - Operational sound
+  { BAND_5, CRGB::Purple, 
+    { SOUND_OPERATIONAL }, 
+    1, 0 }
 };
 
 const int NUM_BANDS = sizeof(BAND_CONFIGS) / sizeof(BAND_CONFIGS[0]);
@@ -72,7 +82,7 @@ void setup() {
   // Brief delay for Serial to stabilize (non-blocking, no wait)
   delay(100);
 
-  DEBUG_PRINTLN("\n=== MagiQuest Box (RFID) Initializing ===");
+  DEBUG_PRINTLN("\n=== MagicBand (RFID) Initializing ===");
   DEBUG_PRINT("Firmware Version: ");
   DEBUG_PRINTLN(FIRMWARE_VERSION);
   DEBUG_PRINT("Build Timestamp: ");
@@ -80,11 +90,15 @@ void setup() {
   DEBUG_PRINTLN("=========================================\n");
   DEBUG_PRINTLN("Comms enabled - beginning sensing");
 
-  // Connect RFID reader (replaces IR receiver)
+  // CRITICAL: Initialize RFID AFTER LEDs because FastLED can interfere with SPI
+  // FastLED.show() disables interrupts briefly which can disrupt SPI initialization
   setup_rfid();
   
-  // Connect Servo
-  setup_servo();
+  // Run RFID diagnostic to verify it's working
+  DEBUG_PRINTLN("\n=== RFID System Check ===");
+  delay(100);  // Let SPI stabilize
+  rfid_diagnostic();
+  DEBUG_PRINTLN("=========================\n");
   
   // Audio Setup (DFPlayer Mini with SD card)
   // Non-blocking - if it fails, system continues without audio
@@ -112,7 +126,7 @@ void setup() {
     play_sound_file(SOUND_CHIME);
   }
   
-  DEBUG_PRINTLN("MagiQuest RFID system ready!");
+  DEBUG_PRINTLN("MagicBand RFID system ready!");
   DEBUG_PRINT("Total startup time: ");
   DEBUG_PRINT(millis());
   DEBUG_PRINTLN("ms");
@@ -126,15 +140,24 @@ void loop() {
   // Process Home Assistant connection and commands
   loop_home_assistant();
   
+  // Get current time for timing checks
+  unsigned long current_time = millis();
+  
   // Update stats for Home Assistant
-  ha_stats.lid_is_open = lid_is_open;
-  ha_stats.time_until_ready = (millis() - last_activation < get_ha_cooldown()) ? 
-    (get_ha_cooldown() - (millis() - last_activation)) / 1000 : 0;
+  ha_stats.time_until_ready = (current_time - last_activation < get_ha_cooldown()) ? 
+    (get_ha_cooldown() - (current_time - last_activation)) / 1000 : 0;
   
   // Check if system is enabled via Home Assistant
   if (!is_system_enabled()) {
     delay(MAIN_LOOP_DELAY);
     return; // Skip band detection if disabled
+  }
+  
+  // Periodic RFID health check (every 30 seconds)
+  if (current_time - last_rfid_diagnostic >= RFID_DIAGNOSTIC_INTERVAL) {
+    DEBUG_PRINTLN("\n[Main] Running periodic RFID health check...");
+    rfid_diagnostic();
+    last_rfid_diagnostic = current_time;
   }
   
   // Apply Home Assistant brightness setting
@@ -145,9 +168,6 @@ void loop() {
   
   // Check for RFID input (replaces IR wand detection)
   uint32_t band_id = loop_rfid();
-  
-  // Get current time
-  unsigned long current_time = millis();
   
   // Use HA-controlled cooldown period
   unsigned long cooldown = get_ha_cooldown();
@@ -164,7 +184,6 @@ void loop() {
         DEBUG_PRINTLN(BAND_CONFIGS[i].current_sound_index + 1);
         
         set_color(BAND_CONFIGS[i].led_color);
-        // Removed POWER_SETTLE_DELAY - not needed with proper power supply
         
         // Play current sound variation
         uint8_t sound_file = BAND_CONFIGS[i].sound_files[BAND_CONFIGS[i].current_sound_index];
@@ -172,14 +191,12 @@ void loop() {
           play_sound_file(sound_file);
         }
         
-        // Reduced audio settle delay - DFPlayer buffers internally
-        delay(150); // Reduced from 300ms
+        // Brief audio settle delay
+        delay(AUDIO_SETTLE_DELAY);
         
         // Rotate to next sound for next activation
         BAND_CONFIGS[i].current_sound_index = 
           (BAND_CONFIGS[i].current_sound_index + 1) % BAND_CONFIGS[i].num_sounds;
-        
-        toggle_lid();
         
         // Publish band activation to Home Assistant
         publish_wand_activation(band_id);  // Reuses existing HA function
@@ -203,12 +220,7 @@ void loop() {
   if (current_time - last_activation < cooldown && last_activation > 0) {
     cooldown_pulse();
   }
-  
-  // Check if lid should auto-close (if enabled via HA)
-  if (is_auto_close_enabled()) {
-    check_auto_close();
-  }
-  
+
   // wait a bit, and then back to receiving and decoding
   delay(MAIN_LOOP_DELAY);
 }
