@@ -35,7 +35,7 @@ enum SoundFile {
 };
 
 // Volume settings (0-30)
-#define DEFAULT_VOLUME 22
+#define DEFAULT_VOLUME 24
 #define MAX_VOLUME 30
 #define MIN_VOLUME 0
 

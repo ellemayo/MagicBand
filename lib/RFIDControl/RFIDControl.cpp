@@ -121,8 +121,8 @@ uint32_t read_rfid_if_present() {
     return 0;
   }
   
-  // Small delay to let the card stabilize
-  delay(5);
+  // Longer delay to let the card stabilize before reading
+  delay(20);
   
   // Verify if the NUID has been read
   if (!rfid.PICC_ReadCardSerial()) {

@@ -159,13 +159,20 @@ void loop() {
     DEBUG_PRINTLN("RFID card detected! Attempting immediate read...");
     
     // Try to read the card IMMEDIATELY before starting animation
-    uint32_t band_id = read_rfid_if_present();
+    // Give it a moment to stabilize and try a few times
+    uint32_t band_id = 0;
+    for (int initial_attempt = 0; initial_attempt < 3 && band_id == 0; initial_attempt++) {
+      if (initial_attempt > 0) {
+        delay(30); // Small delay between attempts
+      }
+      band_id = read_rfid_if_present();
+    }
     
     if (band_id != 0) {
-      DEBUG_PRINT("Successfully read band ID on first detection: 0x");
+      DEBUG_PRINT("Successfully read band ID on initial detection: 0x");
       DEBUG_PRINTLN(band_id, HEX);
     } else {
-      DEBUG_PRINTLN("Initial read failed, will retry during animation");
+      DEBUG_PRINTLN("Initial read failed after 3 attempts, will retry during animation");
     }
     
     // Play detection beep sound to indicate card detected
