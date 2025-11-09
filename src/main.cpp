@@ -100,7 +100,6 @@ void setup() {
     DEBUG_PRINTLN("Check wiring and SD card. System will continue without audio.");
   } else {
     DEBUG_PRINTLN("DFPlayer Mini ready - audio system online");
-    set_volume(30);  // Set comfortable default volume
   }
   
   // Startup sequence - lights BEFORE WiFi to show system is alive
