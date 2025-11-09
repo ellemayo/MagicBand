@@ -157,7 +157,17 @@ void loop() {
   
   // Check for RFID card detection (only when not in cooldown)
   if (is_rfid_card_present() && current_time - last_activation >= cooldown) {
-    DEBUG_PRINTLN("RFID card detected! Starting 3-second chase animation...");
+    DEBUG_PRINTLN("RFID card detected! Attempting immediate read...");
+    
+    // Try to read the card IMMEDIATELY before starting animation
+    uint32_t band_id = read_rfid_if_present();
+    
+    if (band_id != 0) {
+      DEBUG_PRINT("Successfully read band ID on first detection: 0x");
+      DEBUG_PRINTLN(band_id, HEX);
+    } else {
+      DEBUG_PRINTLN("Initial read failed, will retry during animation");
+    }
     
     // Play detection beep sound to indicate card detected
     if (dfplayer_is_ready()) {
@@ -170,15 +180,20 @@ void loop() {
     
     // Run the 3-second accelerating chase animation (blocking)
     unsigned long animation_start = millis();
-    uint32_t band_id = 0;
     int read_attempts = 0;
     int successful_reads = 0;
+    
+    // If we already have the ID, count it as first successful read
+    if (band_id != 0) {
+      read_attempts = 1;
+      successful_reads = 1;
+    }
     
     while (millis() - animation_start < DETECTION_WINDOW) {
       update_chase_animation();
       
-      // Try to read the card during animation - multiple attempts for reliability
-      if (band_id == 0 && millis() - animation_start > 100) { // Wait 100ms before first read attempt
+      // Only try to read if we don't have an ID yet
+      if (band_id == 0 && millis() - animation_start > 100) { // Wait 100ms before retry attempts
         uint32_t temp_id = read_rfid_if_present();
         read_attempts++;
         
@@ -189,11 +204,9 @@ void loop() {
           DEBUG_PRINT(" - Got ID: 0x");
           DEBUG_PRINTLN(temp_id, HEX);
           
-          // Use the first successful read
-          if (band_id == 0) {
-            band_id = temp_id;
-            DEBUG_PRINTLN("First successful read - ID locked in");
-          }
+          // Use this ID since we don't have one yet
+          band_id = temp_id;
+          DEBUG_PRINTLN("ID locked in from retry attempt");
         }
       }
       
