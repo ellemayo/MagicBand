@@ -27,4 +27,9 @@ void accelerating_chase(CRGB color); // Chase that starts slow and speeds up
 void fade_in_out(CRGB color, int fade_speed_ms = 20); // Fade in to color, then fade out
 void flash_color(CRGB color, int num_flashes = 3, int flash_speed_ms = 200); // Flash a color multiple times
 
+// Non-blocking chase animation state management
+void start_chase_animation(); // Start the chase animation (call once when RFID detected)
+bool update_chase_animation(); // Update chase animation (call every loop iteration), returns true when animation is done
+void stop_chase_animation(); // Stop the chase animation immediately
+
 #endif

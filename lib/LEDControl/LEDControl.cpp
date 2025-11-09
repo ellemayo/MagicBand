@@ -292,3 +292,108 @@ void flash_color(CRGB color, int num_flashes, int flash_speed_ms) {
   
   DEBUG_PRINTLN("Flash animation complete");
 }
+
+// Non-blocking chase animation state variables
+static bool chase_active = false;
+static unsigned long chase_start_time = 0;
+static unsigned long chase_last_update = 0;
+static int chase_position = 0;
+static int chase_speed_ms = 150; // Current speed
+static uint8_t saved_brightness = LED_DEFAULT_BRIGHTNESS; // Save brightness for restore
+
+// Start the chase animation (call when RFID is first detected)
+void start_chase_animation() {
+  DEBUG_PRINTLN("Starting non-blocking chase animation");
+  chase_active = true;
+  chase_start_time = millis();
+  chase_last_update = millis();
+  chase_position = 0;
+  chase_speed_ms = 150; // Start slow
+  
+  // Save current brightness and set to default
+  saved_brightness = FastLED.getBrightness();
+  FastLED.setBrightness(LED_DEFAULT_BRIGHTNESS);
+  
+  // Clear LEDs
+  fill_solid(leds, NUM_LEDS, CRGB::Black);
+  FastLED.show();
+}
+
+// Update chase animation (call every loop iteration)
+// Returns true when the 3-second animation is complete
+bool update_chase_animation() {
+  if (!chase_active) {
+    return true; // Not running, so it's "done"
+  }
+  
+  unsigned long current_time = millis();
+  unsigned long elapsed_time = current_time - chase_start_time;
+  
+  // Animation runs for 3 seconds
+  const unsigned long ANIMATION_DURATION = 3000;
+  
+  // Check if animation is complete
+  if (elapsed_time >= ANIMATION_DURATION) {
+    DEBUG_PRINTLN("Chase animation complete (3 seconds elapsed)");
+    chase_active = false;
+    fill_solid(leds, NUM_LEDS, CRGB::Black);
+    FastLED.show();
+    return true;
+  }
+  
+  // Calculate speed based on elapsed time (accelerate over 3 seconds)
+  // Start at 150ms, end at 10ms
+  float progress = (float)elapsed_time / ANIMATION_DURATION;
+  chase_speed_ms = 150 - (int)(140 * progress); // 150 -> 10
+  if (chase_speed_ms < 10) chase_speed_ms = 10;
+  
+  // Update position if enough time has passed
+  if (current_time - chase_last_update >= chase_speed_ms) {
+    chase_last_update = current_time;
+    
+    // Turn off all LEDs
+    fill_solid(leds, NUM_LEDS, CRGB::Black);
+    
+    // Light up current LED and trailing tail with cyan/blue color (more visible)
+    CRGB chase_color = CRGB(0, 150, 255); // Bright cyan-blue
+    leds[chase_position] = chase_color;
+    
+    // Add trailing tail
+    if (chase_position > 0) {
+      leds[chase_position - 1] = chase_color;
+      leds[chase_position - 1].fadeToBlackBy(128);
+    } else if (chase_position == 0) {
+      // Wrap around - show tail at end
+      leds[NUM_LEDS - 1] = chase_color;
+      leds[NUM_LEDS - 1].fadeToBlackBy(128);
+    }
+    
+    if (chase_position > 1) {
+      leds[chase_position - 2] = chase_color;
+      leds[chase_position - 2].fadeToBlackBy(192);
+    } else if (chase_position == 1) {
+      leds[NUM_LEDS - 1] = chase_color;
+      leds[NUM_LEDS - 1].fadeToBlackBy(192);
+    }
+    
+    FastLED.show();
+    
+    // Move to next position
+    chase_position++;
+    if (chase_position >= NUM_LEDS) {
+      chase_position = 0; // Loop back to start
+    }
+  }
+  
+  return false; // Animation still running
+}
+
+// Stop the chase animation immediately
+void stop_chase_animation() {
+  DEBUG_PRINTLN("Stopping chase animation");
+  chase_active = false;
+  fill_solid(leds, NUM_LEDS, CRGB::Black);
+  FastLED.show();
+  // Restore original brightness
+  FastLED.setBrightness(saved_brightness);
+}

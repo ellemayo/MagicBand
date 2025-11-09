@@ -19,11 +19,10 @@ const unsigned long COOLDOWN_PERIOD = 5000;        // 5 seconds cooldown between
 const unsigned long STARTUP_LIGHT_DELAY = 500;     // Delay between startup light and sound
 const unsigned long AUDIO_SETTLE_DELAY = 150;      // Delay after starting audio
 const unsigned long MAIN_LOOP_DELAY = 100;         // Main loop iteration delay
-const unsigned long RFID_DIAGNOSTIC_INTERVAL = 30000;  // Run RFID health check every 30 seconds
+const unsigned long DETECTION_WINDOW = 3000;       // 3 second detection window for RFID reading
 
 // Cooldown management - prevent activations too close together
 unsigned long last_activation = 0;
-unsigned long last_rfid_diagnostic = 0;
 
 // Band configuration structure with sound variation support
 struct BandConfig {
@@ -94,12 +93,6 @@ void setup() {
   // FastLED.show() disables interrupts briefly which can disrupt SPI initialization
   setup_rfid();
   
-  // Run RFID diagnostic to verify it's working
-  DEBUG_PRINTLN("\n=== RFID System Check ===");
-  delay(100);  // Let SPI stabilize
-  rfid_diagnostic();
-  DEBUG_PRINTLN("=========================\n");
-  
   // Audio Setup (DFPlayer Mini with SD card)
   // Non-blocking - if it fails, system continues without audio
   if (!setup_audio_dfplayer()) {
@@ -153,71 +146,142 @@ void loop() {
     return; // Skip band detection if disabled
   }
   
-  // Periodic RFID health check (every 30 seconds)
-  if (current_time - last_rfid_diagnostic >= RFID_DIAGNOSTIC_INTERVAL) {
-    DEBUG_PRINTLN("\n[Main] Running periodic RFID health check...");
-    rfid_diagnostic();
-    last_rfid_diagnostic = current_time;
-  }
-  
   // Apply Home Assistant brightness setting
   uint8_t ha_brightness = get_ha_brightness();
   if (ha_brightness != FastLED.getBrightness()) {
     FastLED.setBrightness(ha_brightness);
   }
   
-  // Check for RFID input (replaces IR wand detection)
-  uint32_t band_id = loop_rfid();
-  
   // Use HA-controlled cooldown period
   unsigned long cooldown = get_ha_cooldown();
   
-  // Check if enough time has passed since last activation (applies to all bands)
-  if (band_id != 0 && current_time - last_activation >= cooldown) {
-    // Search for matching band configuration
-    bool band_found = false;
-    for (int i = 0; i < NUM_BANDS; i++) {
-      if (band_id == BAND_CONFIGS[i].band_id) {
-        DEBUG_PRINT("RFID Band activated (ID: 0x");
-        DEBUG_PRINT(band_id, HEX);
-        DEBUG_PRINT(") - Sound variation: ");
-        DEBUG_PRINTLN(BAND_CONFIGS[i].current_sound_index + 1);
+  // Check for RFID card detection (only when not in cooldown)
+  if (is_rfid_card_present() && current_time - last_activation >= cooldown) {
+    DEBUG_PRINTLN("RFID card detected! Starting 3-second chase animation...");
+    
+    // Play detection beep sound to indicate card detected
+    if (dfplayer_is_ready()) {
+      play_sound_file(SOUND_CHIME);  // Quick beep to indicate detection started
+      delay(300);
+    }
+    
+    // Start the chase animation
+    start_chase_animation();
+    
+    // Run the 3-second accelerating chase animation (blocking)
+    unsigned long animation_start = millis();
+    uint32_t band_id = 0;
+    int read_attempts = 0;
+    int successful_reads = 0;
+    
+    while (millis() - animation_start < DETECTION_WINDOW) {
+      update_chase_animation();
+      
+      // Try to read the card during animation - multiple attempts for reliability
+      if (band_id == 0 && millis() - animation_start > 100) { // Wait 100ms before first read attempt
+        uint32_t temp_id = read_rfid_if_present();
+        read_attempts++;
         
-        set_color(BAND_CONFIGS[i].led_color);
-        
-        // Play current sound variation
-        uint8_t sound_file = BAND_CONFIGS[i].sound_files[BAND_CONFIGS[i].current_sound_index];
-        if (dfplayer_is_ready()) {
-          play_sound_file(sound_file);
+        if (temp_id != 0) {
+          successful_reads++;
+          DEBUG_PRINT("Read attempt ");
+          DEBUG_PRINT(read_attempts);
+          DEBUG_PRINT(" - Got ID: 0x");
+          DEBUG_PRINTLN(temp_id, HEX);
+          
+          // Use the first successful read
+          if (band_id == 0) {
+            band_id = temp_id;
+            DEBUG_PRINTLN("First successful read - ID locked in");
+          }
         }
+      }
+      
+      delay(10); // Small delay for animation smoothness
+    }
+    
+    // Stop the chase animation
+    stop_chase_animation();
+    
+    DEBUG_PRINT("Detection complete - Read attempts: ");
+    DEBUG_PRINT(read_attempts);
+    DEBUG_PRINT(" | Successful reads: ");
+    DEBUG_PRINT(successful_reads);
+    DEBUG_PRINT(" | Final ID: 0x");
+    DEBUG_PRINTLN(band_id, HEX);
+    
+    // Check if we successfully read a band ID
+    if (band_id != 0) {
+      // Search for matching band configuration
+      bool band_found = false;
+      for (int i = 0; i < NUM_BANDS; i++) {
+        if (band_id == BAND_CONFIGS[i].band_id) {
+          DEBUG_PRINT("Known RFID Band activated (ID: 0x");
+          DEBUG_PRINT(band_id, HEX);
+          DEBUG_PRINTLN(")");
+          
+          // Show band-specific color FIRST
+          set_color(BAND_CONFIGS[i].led_color);
+          delay(200); // Brief moment to see the color
+          
+          // Play success chime while showing the color
+          if (dfplayer_is_ready()) {
+            play_sound_file(SOUND_CHIME);
+            delay(1500); // Wait for chime to play completely
+          }
+          
+          // Delay between chime and band sound (color stays on)
+          delay(500);
+          
+          // Play current sound variation
+          uint8_t sound_file = BAND_CONFIGS[i].sound_files[BAND_CONFIGS[i].current_sound_index];
+          if (dfplayer_is_ready()) {
+            play_sound_file(sound_file);
+            delay(3000); // Let the sound play
+          }
+          
+          // Fade out the color after a few seconds
+          delay(1000);
+          fade_out_leds();
+          
+          // Rotate to next sound for next activation
+          BAND_CONFIGS[i].current_sound_index = 
+            (BAND_CONFIGS[i].current_sound_index + 1) % BAND_CONFIGS[i].num_sounds;
+          
+          // Publish band activation to Home Assistant
+          publish_wand_activation(band_id);
+          
+          band_found = true;
+          break;
+        }
+      }
+      
+      if (!band_found) {
+        DEBUG_PRINT("Unknown RFID Band ID: 0x");
+        DEBUG_PRINTLN(band_id, HEX);
         
-        // Brief audio settle delay
-        delay(AUDIO_SETTLE_DELAY);
-        
-        // Rotate to next sound for next activation
-        BAND_CONFIGS[i].current_sound_index = 
-          (BAND_CONFIGS[i].current_sound_index + 1) % BAND_CONFIGS[i].num_sounds;
-        
-        // Publish band activation to Home Assistant
-        publish_wand_activation(band_id);  // Reuses existing HA function
-        
-        band_found = true;
-        break;
+        // Flash red and play error sound
+        flash_color(CRGB::Red, 3, 200);
+        if (dfplayer_is_ready()) {
+          play_sound_file(SOUND_ERROR);
+          delay(1500);
+        }
+      }
+    } else {
+      DEBUG_PRINTLN("Failed to read band UID during 3-second window");
+      
+      // Flash red and play error sound
+      flash_color(CRGB::Red, 3, 200);
+      if (dfplayer_is_ready()) {
+        play_sound_file(SOUND_ERROR);
+        delay(1500);
       }
     }
     
-    if (!band_found) {
-      DEBUG_PRINT("Unknown RFID Band ID: 0x");
-      DEBUG_PRINTLN(band_id, HEX);
-    }
+    last_activation = current_time;
     
-    last_activation = current_time; // Update last activation time for any band
-  } else if (band_id != 0) {
-    DEBUG_PRINTLN("Band on cooldown - ignoring");
-  }
-  
-  // Show cooldown visual feedback if in cooldown period
-  if (current_time - last_activation < cooldown && last_activation > 0) {
+  } else if (current_time - last_activation < cooldown && last_activation > 0) {
+    // Show cooldown visual feedback
     cooldown_pulse();
   }
 

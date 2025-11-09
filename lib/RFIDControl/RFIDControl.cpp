@@ -107,35 +107,77 @@ uint32_t uid_to_uint32(uint8_t *uid_bytes, uint8_t size) {
   return result;
 }
 
-/**
- * Diagnostic function to test RFID reader health
- * Call this periodically to verify the reader is still responsive
- */
-void rfid_diagnostic() {
-  DEBUG_PRINTLN("[RFID] === Diagnostic Check ===");
+// Check if ANY RFID card is currently present (lightweight check)
+bool is_rfid_card_present() {
+  return rfid.PICC_IsNewCardPresent();
+}
+
+// Try to read the card if present, returns UID or 0 if failed
+uint32_t read_rfid_if_present() {
+  uint32_t band_id = 0;
   
-  // Check firmware version
-  byte version = rfid.PCD_ReadRegister(rfid.VersionReg);
-  DEBUG_PRINT("[RFID] Firmware version: 0x");
-  DEBUG_PRINTLN(version, HEX);
-  
-  if (version == 0x00 || version == 0xFF) {
-    DEBUG_PRINTLN("[RFID] WARNING: Reader not responding! Check wiring.");
-  } else {
-    DEBUG_PRINTLN("[RFID] Reader is responding normally");
+  // Check if card is present first
+  if (!rfid.PICC_IsNewCardPresent()) {
+    return 0;
   }
   
-  // Perform self-test
-  bool selfTestResult = rfid.PCD_PerformSelfTest();
-  if (selfTestResult) {
-    DEBUG_PRINTLN("[RFID] Self-test PASSED");
-  } else {
-    DEBUG_PRINTLN("[RFID] Self-test FAILED - may need reset");
+  // Small delay to let the card stabilize
+  delay(5);
+  
+  // Verify if the NUID has been read
+  if (!rfid.PICC_ReadCardSerial()) {
+    DEBUG_PRINTLN("[RFID] Failed to read card serial");
+    return 0;
   }
   
-  // Re-initialize after self-test (self-test leaves reader in bad state)
-  rfid.PCD_Init();
-  rfid.PCD_SetAntennaGain(rfid.RxGain_max);
+  // Get the RFID type
+  MFRC522::PICC_Type piccType = rfid.PICC_GetType(rfid.uid.sak);
   
-  DEBUG_PRINTLN("[RFID] === End Diagnostic ===");
+  // Check if it's a Mifare Classic or Ultralight card (most common for bands/wristbands)
+  if (piccType != MFRC522::PICC_TYPE_MIFARE_MINI &&  
+      piccType != MFRC522::PICC_TYPE_MIFARE_1K &&
+      piccType != MFRC522::PICC_TYPE_MIFARE_4K &&
+      piccType != MFRC522::PICC_TYPE_MIFARE_UL) {
+    DEBUG_PRINT("Unsupported RFID type: ");
+    DEBUG_PRINTLN(rfid.PICC_GetTypeName(piccType));
+    rfid.PICC_HaltA();
+    rfid.PCD_StopCrypto1();
+    return 0;
+  }
+  
+  // Verify we got a valid UID (not all zeros)
+  bool all_zeros = true;
+  for (uint8_t i = 0; i < rfid.uid.size; i++) {
+    if (rfid.uid.uidByte[i] != 0) {
+      all_zeros = false;
+      break;
+    }
+  }
+  
+  if (all_zeros) {
+    DEBUG_PRINTLN("[RFID] Invalid UID (all zeros)");
+    rfid.PICC_HaltA();
+    rfid.PCD_StopCrypto1();
+    return 0;
+  }
+  
+  // Convert UID to uint32_t for easy comparison
+  band_id = uid_to_uint32(rfid.uid.uidByte, rfid.uid.size);
+  
+  // Store in global structure
+  current_band.uid_32 = band_id;
+  for (uint8_t i = 0; i < 4 && i < rfid.uid.size; i++) {
+    current_band.uid_bytes[i] = rfid.uid.uidByte[i];
+  }
+  
+  DEBUG_PRINT("RFID Band read - UID: 0x");
+  DEBUG_PRINTLN(band_id, HEX);
+  
+  // Halt PICC
+  rfid.PICC_HaltA();
+  
+  // Stop encryption on PCD
+  rfid.PCD_StopCrypto1();
+  
+  return band_id;
 }

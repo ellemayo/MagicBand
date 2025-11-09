@@ -41,7 +41,8 @@ extern rfid_band current_band;
 // Function declarations
 void setup_rfid();
 uint32_t loop_rfid();
-void rfid_diagnostic();  // Test RFID reader health
+bool is_rfid_card_present(); // Check if ANY RFID card is currently present (doesn't read it)
+uint32_t read_rfid_if_present(); // Try to read the card if present, returns UID or 0
 
 // Helper function to convert UID byte array to uint32_t
 uint32_t uid_to_uint32(uint8_t *uid_bytes, uint8_t size);
