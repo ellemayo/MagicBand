@@ -130,40 +130,48 @@ void cooldown_pulse() {
 // speed_ms: Delay between each step (lower = faster)
 // num_cycles: How many times to run the full chase
 void chase_animation(CRGB color, int speed_ms, int num_cycles) {
-  DEBUG_PRINTLN("Starting chase animation");
+  DEBUG_PRINTLN("Starting chase animation (skipping first LED)");
   
   // Save original brightness
   uint8_t original_brightness = FastLED.getBrightness();
   FastLED.setBrightness(LED_DEFAULT_BRIGHTNESS);
   
   for (int cycle = 0; cycle < num_cycles; cycle++) {
-    // Forward chase
-    for (int i = 0; i < NUM_LEDS; i++) {
-      // Turn off all LEDs
+    // Forward chase - start at LED 1 (skip LED 0)
+    for (int i = 1; i < NUM_LEDS; i++) {
+      // Turn off all LEDs except first one
       fill_solid(leds, NUM_LEDS, CRGB::Black);
       
       // Light up current LED and a trailing tail
       leds[i] = color;
-      if (i > 0) leds[i-1] = color; // Tail 1
-      leds[i-1].fadeToBlackBy(128);
-      if (i > 1) leds[i-2] = color; // Tail 2
-      leds[i-2].fadeToBlackBy(192);
+      if (i > 1) {  // Changed from i > 0 to avoid lighting LED 0
+        leds[i-1] = color; // Tail 1
+        leds[i-1].fadeToBlackBy(128);
+      }
+      if (i > 2) {  // Changed from i > 1
+        leds[i-2] = color; // Tail 2
+        leds[i-2].fadeToBlackBy(192);
+      }
       
       FastLED.show();
       delay(speed_ms);
     }
     
-    // Optional: Reverse chase
-    for (int i = NUM_LEDS - 1; i >= 0; i--) {
-      // Turn off all LEDs
+    // Optional: Reverse chase - end at LED 1 (skip LED 0)
+    for (int i = NUM_LEDS - 1; i >= 1; i--) {  // Changed from i >= 0
+      // Turn off all LEDs except first one
       fill_solid(leds, NUM_LEDS, CRGB::Black);
       
       // Light up current LED and a trailing tail
       leds[i] = color;
-      if (i < NUM_LEDS - 1) leds[i+1] = color; // Tail 1
-      leds[i+1].fadeToBlackBy(128);
-      if (i < NUM_LEDS - 2) leds[i+2] = color; // Tail 2
-      leds[i+2].fadeToBlackBy(192);
+      if (i < NUM_LEDS - 1) {
+        leds[i+1] = color; // Tail 1
+        leds[i+1].fadeToBlackBy(128);
+      }
+      if (i < NUM_LEDS - 2) {
+        leds[i+2] = color; // Tail 2
+        leds[i+2].fadeToBlackBy(192);
+      }
       
       FastLED.show();
       delay(speed_ms);
@@ -183,7 +191,7 @@ void chase_animation(CRGB color, int speed_ms, int num_cycles) {
 // Accelerating chase - starts slow and speeds up
 // Creates excitement as detection happens
 void accelerating_chase(CRGB color) {
-  DEBUG_PRINTLN("Starting accelerating chase animation");
+  DEBUG_PRINTLN("Starting accelerating chase animation (skipping first LED)");
   
   // Save original brightness
   uint8_t original_brightness = FastLED.getBrightness();
@@ -196,18 +204,18 @@ void accelerating_chase(CRGB color) {
   for (int speed_idx = 0; speed_idx < num_speeds; speed_idx++) {
     int speed_ms = speeds[speed_idx];
     
-    // Do one pass at this speed
-    for (int i = 0; i < NUM_LEDS; i++) {
-      // Turn off all LEDs
+    // Do one pass at this speed - start at LED 1 (skip LED 0)
+    for (int i = 1; i < NUM_LEDS; i++) {
+      // Turn off all LEDs except first one
       fill_solid(leds, NUM_LEDS, CRGB::Black);
       
       // Light up current LED and a trailing tail
       leds[i] = color;
-      if (i > 0) {
+      if (i > 1) {  // Changed from i > 0 to avoid lighting LED 0
         leds[i-1] = color;
         leds[i-1].fadeToBlackBy(128);
       }
-      if (i > 1) {
+      if (i > 2) {  // Changed from i > 1
         leds[i-2] = color;
         leds[i-2].fadeToBlackBy(192);
       }
@@ -217,8 +225,9 @@ void accelerating_chase(CRGB color) {
     }
   }
   
-  // Final flash at the end
+  // Final flash at the end - but keep first LED off
   fill_solid(leds, NUM_LEDS, color);
+  leds[0] = CRGB::Black;  // Keep first LED off
   FastLED.show();
   delay(100);
   
@@ -307,7 +316,7 @@ void start_chase_animation() {
   chase_active = true;
   chase_start_time = millis();
   chase_last_update = millis();
-  chase_position = 0;
+  chase_position = 1;  // Start at LED 1 instead of 0
   chase_speed_ms = 150; // Start slow
   
   // Save current brightness and set to default
@@ -351,29 +360,27 @@ bool update_chase_animation() {
   if (current_time - chase_last_update >= chase_speed_ms) {
     chase_last_update = current_time;
     
-    // Turn off all LEDs
+    // Turn off all LEDs except first one
     fill_solid(leds, NUM_LEDS, CRGB::Black);
+    
+    // Skip LED 0 - if position is 0, move to 1
+    if (chase_position == 0) {
+      chase_position = 1;
+    }
     
     // Light up current LED and trailing tail with cyan/blue color (more visible)
     CRGB chase_color = CRGB(0, 150, 255); // Bright cyan-blue
     leds[chase_position] = chase_color;
     
-    // Add trailing tail
-    if (chase_position > 0) {
+    // Add trailing tail - but never light up LED 0
+    if (chase_position > 1) {  // Changed from chase_position > 0
       leds[chase_position - 1] = chase_color;
       leds[chase_position - 1].fadeToBlackBy(128);
-    } else if (chase_position == 0) {
-      // Wrap around - show tail at end
-      leds[NUM_LEDS - 1] = chase_color;
-      leds[NUM_LEDS - 1].fadeToBlackBy(128);
     }
     
-    if (chase_position > 1) {
+    if (chase_position > 2) {  // Changed from chase_position > 1
       leds[chase_position - 2] = chase_color;
       leds[chase_position - 2].fadeToBlackBy(192);
-    } else if (chase_position == 1) {
-      leds[NUM_LEDS - 1] = chase_color;
-      leds[NUM_LEDS - 1].fadeToBlackBy(192);
     }
     
     FastLED.show();
@@ -381,7 +388,7 @@ bool update_chase_animation() {
     // Move to next position
     chase_position++;
     if (chase_position >= NUM_LEDS) {
-      chase_position = 0; // Loop back to start
+      chase_position = 1; // Loop back to LED 1 (skip LED 0)
     }
   }
   
