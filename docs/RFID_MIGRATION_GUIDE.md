@@ -279,9 +279,126 @@ After successful migration:
 5. **Wearable**: Wristbands are easy to wear vs holding wands
 6. **Durability**: No delicate IR LEDs to break
 
+## Enhanced Visual and Audio Feedback
+
+### Implementation Overview
+To improve user experience, you can add visual and audio feedback for RFID detection success/failure.
+
+### LED Animations
+Three new animations are available in `LEDControl`:
+
+1. **`accelerating_chase(CRGB color)`** - Chase animation that speeds up (builds excitement)
+2. **`fade_in_out(CRGB color, int fade_speed_ms = 20)`** - Smooth fade in/out (success feedback)
+3. **`flash_color(CRGB color, int num_flashes = 3, int flash_speed_ms = 200)`** - Flashing (error feedback)
+
+### Implementation Example
+
+```cpp
+// In main.cpp loop()
+if (band_id != 0 && current_time - last_activation >= cooldown) {
+    
+    // Show detection animation
+    accelerating_chase(CRGB::White);
+    
+    // Search for matching band
+    bool band_found = false;
+    for (int i = 0; i < NUM_BANDS; i++) {
+        if (band_id == BAND_CONFIGS[i].band_id) {
+            // SUCCESS: Recognized band
+            fade_in_out(CRGB::Green, 15);  // Green success indication
+            if (dfplayer_is_ready()) {
+                play_sound_file(SOUND_CHIMES);  // Success chime
+            }
+            delay(200);
+            
+            // Show character-specific effects
+            set_color(BAND_CONFIGS[i].led_color);
+            play_sound_file(BAND_CONFIGS[i].sound_files[...]);
+            
+            band_found = true;
+            break;
+        }
+    }
+    
+    if (!band_found) {
+        // FAIL: Unknown band
+        flash_color(CRGB::Blue, 3, 200);  // Blue error flash
+        if (dfplayer_is_ready()) {
+            play_sound_file(SOUND_BOX_CLOSING);  // Error sound
+        }
+    }
+}
+```
+
+## Advanced Debugging
+
+### Health Diagnostic Function
+The RFIDControl library includes a diagnostic function for troubleshooting:
+
+```cpp
+// Call in setup() after setup_rfid()
+rfid_diagnostic();
+
+// Periodic health check (every 30 seconds in loop())
+if (current_time - last_rfid_diagnostic >= 30000) {
+    rfid_diagnostic();
+    last_rfid_diagnostic = current_time;
+}
+```
+
+### Expected Diagnostic Output
+```
+[RFID] === Diagnostic Check ===
+[RFID] Firmware version: 0x92
+[RFID] Reader is responding normally
+[RFID] Self-test PASSED
+[RFID] === End Diagnostic ===
+```
+
+### Debug Output Enhancements
+Enable detailed logging in `RFIDControl.cpp`:
+
+```cpp
+if (!rfid.PICC_IsNewCardPresent()) {
+    return 0;
+}
+
+DEBUG_PRINTLN("[RFID] Card detected - attempting to read...");
+
+if (!rfid.PICC_ReadCardSerial()) {
+    DEBUG_PRINTLN("[RFID] Failed to read card serial");
+    return 0;
+}
+
+DEBUG_PRINTLN("[RFID] Card serial read successfully");
+```
+
+### Common Debug Scenarios
+
+**Scenario 1: Card Detected But Not Read**
+```
+[RFID] Card detected - attempting to read...
+[RFID] Failed to read card serial
+```
+**Solutions**: Check SPI wiring, power stability, try different card
+
+**Scenario 2: Reader Not Responding**
+```
+[RFID] Firmware version: 0x00
+[RFID] WARNING: Reader not responding!
+[RFID] Self-test FAILED
+```
+**Solutions**: Check power (3.3V), verify all wiring, check for loose connections
+
+**Scenario 3: Intermittent Detection**
+- Add 10µF capacitor at RFID module
+- Move reader away from LED strip (EMI)
+- Check for brown-out (power supply issues)
+
 ## Additional Resources
 
 - **MFRC522 Library**: https://github.com/miguelbalboa/rfid
 - **ESP32 SPI Pins**: https://randomnerdtutorials.com/esp32-spi-communication-arduino/
 - **Mifare Card Types**: https://www.nxp.com/products/rfid-nfc/mifare-hf/mifare-classic:MC_41863
+- **Quick Reference**: See `RFID_QUICK_REFERENCE.md` for visual diagrams and tables
 

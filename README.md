@@ -1,26 +1,53 @@
 # MagicBand ESP32 Interactive System
 
-## System Overview
+> An ESP32-based magical interactive system that responds to **RFID bands** or **IR wands** with synchronized LED lighting, servo-controlled mechanical actions, and audio playback.
 
-This ESP32-based magical interactive system responds to **RFID bands** or IR wands with synchronized LED lighting, servo-controlled mechanical actions, and tone-based audio playback. The system creates immersive experiences by detecting specific wand/band IDs and triggering unique audiovisual responses for each character.
+## ✨ Features
 
-### ✨ New Features
-- **RFID Support**: Can now use RFID wristbands instead of IR wands (see RFID_MIGRATION_GUIDE.md)
-- **Sound Variation System**: Each wand/band now has 3 unique sounds that cycle on each activation
-- **Home Assistant Integration**: Full IoT control via WiFi/MQTT (optional)
+### 🎵 Dual Audio System
+- **Tone-Based Audio**: Mathematical synthesis via ESP32 DAC (memory efficient)
+- **MP3 Playback**: DFPlayer Mini module for high-quality audio from SD card
+- **Sound Variations**: Each character has 3 unique sounds that rotate on activation
 
-## Features
+### 🏷️ Flexible Input Methods
+- **RFID Bands**: Touch-based detection with RC522 reader (2-4cm range)
+- **IR Wands**: Line-of-sight MagicBand protocol detection (several meters)
+- Choose the input method that works best for your project!
 
-### Audio System
-Uses **tone-based audio** generated mathematically via ESP32's DAC for clean, magical sounds:
-- **Sparkle** - 9 tones, 2.0s - Rising magical effect
-- **Chimes** - 14 tones, 4.0s - Bell-like sounds  
-- **Wand** - 32 tones, 4.0s - Complex magical whoosh
-- **Swoosh** - 10 tones, 2.0s - Quick movement sound
-- **Box Opening** - 4 tones, 1.2s - Low creaking
-- **Box Closing** - 5 tones, 1.2s - Descending close
+### 💡 LED Visual Effects
+- Character-specific colors on full LED strip
+- Cooldown pulse animation
+- Accelerating chase effects
+- Success/fail feedback animations
+- Smooth fade transitions
 
-### Character System with Sound Variations
+### 🏠 IoT Integration (Optional)
+- WiFi/MQTT connectivity
+- Home Assistant auto-discovery
+- Remote control and monitoring
+- Usage statistics tracking
+- Automated scheduling
+
+### 📡 Wireless Updates (Optional)
+- Over-the-air (OTA) firmware updates
+- No USB cable needed after initial setup
+- LED visual feedback during updates
+
+## 📖 Documentation
+
+### Quick Start
+- **[Setup Guide](#hardware-setup)** - Get started with hardware setup below
+- **[Building & Uploading](#building-and-uploading)** - Compile and upload firmware
+
+### Detailed Guides
+- **[📋 Documentation Index](docs/README.md)** - Complete documentation navigation
+- **[🎵 DFPlayer Setup](DFPLAYER_SETUP_GUIDE.md)** - Configure MP3 audio playback
+- **[🏷️ RFID Migration Guide](docs/RFID_MIGRATION_GUIDE.md)** - Switch from IR to RFID
+- **[🏠 Home Assistant Setup](HOME_ASSISTANT_SETUP.md)** - Enable IoT features
+- **[📡 OTA Updates](docs/OTA_USAGE.md)** - Wireless firmware updates
+- **[👨‍💻 Developer Guide](docs/DEVELOPER_GUIDE.md)** - Architecture and coding patterns
+
+## 🎮 Character System
 Each wand has 3 unique sounds that rotate on each activation:
 
 - **August** (Blue wand, ID: 20451)
@@ -39,41 +66,13 @@ Each wand has 3 unique sounds that rotate on each activation:
   - Sound 3: Sparkle
 
 ### Home Assistant Integration (Optional)
-Full IoT control and monitoring:
-- **Controls**: Enable/disable system, adjust LED brightness, set cooldown time
-- **Sensors**: Last wand used, activation count, uptime, lid state
-- **Automations**: Schedule on/off times, brightness based on time of day, notifications
+Full IoT control and monitoring - see **[HOME_ASSISTANT_SETUP.md](HOME_ASSISTANT_SETUP.md)** for complete guide.
 
-See **[HOME_ASSISTANT_SETUP.md](HOME_ASSISTANT_SETUP.md)** for complete setup guide.
+**Controls**: Enable/disable system, adjust LED brightness, set cooldown time  
+**Sensors**: Last wand used, activation count, uptime, lid state  
+**Automations**: Schedule on/off times, brightness based on time of day, notifications
 
-### Visual Feedback
-- Cooldown indicator: First LED pulses gently during 5-second cooldown period
-- Character-specific colors displayed on full LED strip
-- Smooth fade effects on lid close
-
-## Technical Details
-- **DAC Output:** GPIO25 (ESP32 DAC Channel 1)
-- **Sample Rate:** 8000 Hz for tone generation
-- **Waveform:** Pure sine waves
-- **Memory Usage:** ~3KB for audio (vs 15KB+ for WAV files)
-- **Debug Output:** Conditional compilation (can be disabled to save ~2KB flash)
-
-## Converting Audio Files
-
-To add new sounds, use the WAV-to-tone converter:
-
-```bash
-python tools/wav_to_tones.py <input.wav> <output.h> <name>
-```
-
-Example:
-```bash
-python tools/wav_to_tones.py assets/audio/mysound.wav lib/AudioControl/sounds/mysound_tones.h mysound
-```
-
-This will generate a header file with a `play_mysound_tones()` function.
-
-## Hardware Setup
+## 🔧 Hardware Setup
 
 ### IR Wand Version (Default)
 - IR Receiver → GPIO14
@@ -81,92 +80,199 @@ This will generate a header file with a `play_mysound_tones()` function.
 - Servo Motor → GPIO18
 - Audio Output → GPIO25 → LM386 Amplifier → Speaker
 
-### RFID Band Version (Alternative)
-- RFID RC522 SDA → GPIO5
-- RFID RC522 SCK → GPIO18 (SPI)
-- RFID RC522 MOSI → GPIO23 (SPI)
-- RFID RC522 MISO → GPIO19 (SPI)
-- RFID RC522 RST → GPIO22
-- RFID RC522 3.3V → 3.3V (NOT 5V!)
-- LED Strip → GPIO13
-- DFPlayer TX → GPIO16 (ESP32 RX)
-- DFPlayer RX → GPIO17 (ESP32 TX)
-- No servo in this configuration
+### RFID Band Version (Recommended)
+- RFID RC522 Reader:
+  - SDA → GPIO5
+  - SCK → GPIO18 (hardware SPI)
+  - MOSI → GPIO23 (hardware SPI)
+  - MISO → GPIO19 (hardware SPI)
+  - RST → GPIO22
+  - 3.3V → 3.3V (**NOT 5V!**)
+  - GND → GND
+- LED Strip (WS2812B) → GPIO13
+- DFPlayer Mini:
+  - TX → GPIO16 (ESP32 RX)
+  - RX → GPIO17 (ESP32 TX)
+- Audio Output → Amplifier → Speaker
 
-**See [docs/RFID_MIGRATION_GUIDE.md](docs/RFID_MIGRATION_GUIDE.md) for complete RFID setup and migration guide.**
+**See [docs/RFID_MIGRATION_GUIDE.md](docs/RFID_MIGRATION_GUIDE.md) for complete RFID setup.**
 
-### Power Notes
-- 50ms delay between LED and servo activation prevents brown-out
+### Power Requirements
+- **50ms delay** between LED and servo activation prevents brown-out
+- LED power budget: 17 LEDs × 60mA = ~1020mA at max brightness
+- Use external 5V 2A+ power supply for reliable operation
 - Audio DAC initialized to silence (128) to prevent startup noise
 
-## Building and Uploading
+## 🚀 Building and Uploading
 
+### Using PlatformIO CLI
 ```bash
 # Build only
 pio run
 
-# Build and upload
+# Build and upload via USB
 pio run --target upload
+
+# Upload via OTA (after initial USB upload)
+pio run --target upload --upload-port MagicBand.local
 ```
 
-Or use VS Code PlatformIO extension buttons.
+### Using VS Code
+- **Build**: Use "PlatformIO Build" task from Command Palette
+- **Upload**: Use "PlatformIO Upload (USB)" or "Upload (OTA)" task
+- **Monitor**: Use "PlatformIO Monitor" task (115200 baud)
 
-## Adding New Wand Characters
+### First-Time Setup
+1. Connect ESP32 via USB
+2. Build and upload firmware
+3. Open Serial Monitor to see initialization
+4. Configure WiFi credentials (optional, see HOME_ASSISTANT_SETUP.md)
+5. Future uploads can be done via OTA (see docs/OTA_USAGE.md)
 
-1. Define wand ID in `lib/IRControl/IRControl.h`
-2. Add case in `src/main.cpp` switch statement
-3. Call appropriate tone function (or create new one)
-4. Set LED color with `set_color(CRGB::Color)`
+## ⚙️ Configuration
 
-## Memory Constraints
+### Adding New Characters/Bands
 
-ESP32 has 1.25MB flash limit. Current build uses tone-based sounds to stay well under this limit. If you need WAV file playback, see `docs/archive/` for historical documentation on hardware filtering requirements.
-
-## File Structure
-
-```
-lib/AudioControl/
-├── AudioControl.cpp          # Main audio implementation
-├── AudioControl.h            # Audio interface
-└── sounds/
-    ├── AllSoundsTones.h      # Master header for all tones
-    ├── sparkle_tones.h
-    ├── chimes_tones.h
-    ├── wand_tones.h
-    ├── swoosh_tones.h
-    ├── box_opening_tones.h
-    └── box_closing_tones.h
+**Step 1**: Define ID in `lib/RFIDControl/RFIDControl.h` (or `IRControl.h`):
+```cpp
+#define BAND_NEWCHAR 0x12345678  // RFID UID
+// or for IR:
+#define WAND_NEWCHAR 12345
 ```
 
-## Additional Documentation
+**Step 2**: Add to configuration in `src/main.cpp`:
+```cpp
+BandConfig BAND_CONFIGS[] = {
+    // ... existing configs
+    {
+        BAND_NEWCHAR,
+        CRGB::Orange,  // LED color
+        {SOUND_SPARKLE, SOUND_WAND, SOUND_CHIMES},  // 3 sound variations
+        3,   // Number of sounds
+        0    // Current index
+    }
+};
+```
 
-- **[docs/RFID_MIGRATION_GUIDE.md](docs/RFID_MIGRATION_GUIDE.md)** - Complete guide to migrating from IR wands to RFID bands
-- **[HOME_ASSISTANT_SETUP.md](HOME_ASSISTANT_SETUP.md)** - Complete guide to WiFi/MQTT/Home Assistant integration
-- **[IMPROVEMENTS_SUMMARY.md](IMPROVEMENTS_SUMMARY.md)** - Recent bug fixes and optimizations
-- `TONE_SOUNDS_GUIDE.md` - Detailed guide to tone-based audio system
-- `READY_TO_TEST.md` - Testing and evaluation guide
-- `.github/copilot-instructions.md` - AI coding agent context
-- `docs/archive/` - Historical documentation (WAV playback attempts, hardware fixes, etc.)
+### Converting Audio Files
 
-## Recent Updates
+#### For Tone-Based Audio:
+```bash
+python tools/wav_to_tones.py input.wav output.h sound_name
+```
 
-### Sound Variation System ✅
-- Each wand now plays through 3 different sounds
-- Sounds rotate automatically on each activation
-- Prevents repetitiveness and adds variety
+#### For DFPlayer MP3:
+See **[DFPLAYER_SETUP_GUIDE.md](DFPLAYER_SETUP_GUIDE.md)** for complete instructions.
 
-### Home Assistant Integration ✅  
-- Full WiFi/MQTT connectivity
-- Remote control of system enable/disable, brightness, cooldown time
-- Real-time sensors for wand activity, activation count, uptime
-- Automatic Home Assistant discovery
-- Supports automations and notifications
+### Adjusting Settings
 
-### Bug Fixes & Optimizations ✅
-- Added IR decode error handling
-- Fixed power spike protection (50ms delay)
-- Conditional debug output system (saves ~2KB when disabled)
-- Extracted all magic numbers to named constants
-- Added cooldown visual feedback (LED pulse)
+**LED Brightness** (`lib/LEDControl/LEDControl.h`):
+```cpp
+#define LED_DEFAULT_BRIGHTNESS 10  // 0-255
+```
 
-See `IMPROVEMENTS_SUMMARY.md` for complete details.
+**Cooldown Period** (`src/main.cpp`):
+```cpp
+const unsigned long COOLDOWN_PERIOD = 5000;  // milliseconds
+```
+
+**Debug Output** (`lib/DebugConfig/DebugConfig.h`):
+```cpp
+#define DEBUG_ENABLED 1  // Set to 0 to disable (saves ~2KB flash)
+```
+
+## 🐛 Troubleshooting
+
+### RFID Issues
+- **Reader not detected**: Check 3.3V power, verify SPI wiring
+- **Cards not reading**: Try 1-2cm distance, use Mifare Classic 1K cards
+- **Intermittent detection**: Add 10µF capacitor at reader, move away from LEDs
+- See **[docs/RFID_MIGRATION_GUIDE.md](docs/RFID_MIGRATION_GUIDE.md)** for detailed debugging
+
+### Audio Issues
+- **No sound**: Check DFPlayer wiring, verify SD card FAT32 format
+- **Stuttering**: Use 44.1kHz MP3, constant bitrate, mono
+- See **[DFPLAYER_SETUP_GUIDE.md](DFPLAYER_SETUP_GUIDE.md)** for troubleshooting
+
+### Build Issues
+- Run `pio run --target clean` then rebuild
+- Verify `platformio.ini` default environment is set
+- Check PlatformIO installation
+
+### Power Issues
+- Brown-out detection triggering: Use external 5V power supply
+- LEDs dimming servo: Increase delay between LED and servo (50ms+)
+- Random resets: Check power supply capacity (2A minimum)
+
+## 📁 Project Structure
+
+```
+lib/                          # Component libraries
+├── AudioControl/             # Tone-based audio (DAC)
+├── AudioControlDFPlayer/     # MP3 playback (DFPlayer)
+├── BandConfig/               # Character/band configuration
+├── DebugConfig/              # Debug output control
+├── HomeAssistantControl/     # WiFi/MQTT/HA integration
+├── IRControl/                # IR wand detection
+├── LEDControl/               # RGB LED control
+├── OTAControl/               # Over-the-air updates
+├── RFIDControl/              # RFID band detection
+└── ServoControl/             # Servo motor control
+
+src/
+└── main.cpp                  # Main program logic
+
+docs/                         # Documentation
+├── README.md                 # Documentation index
+├── DEVELOPER_GUIDE.md        # Architecture and development
+├── RFID_MIGRATION_GUIDE.md   # RFID setup and migration
+├── RFID_QUICK_REFERENCE.md   # Quick RFID reference
+├── OTA_USAGE.md              # Wireless updates
+└── archive/                  # Historical documentation
+
+tools/                        # Utility scripts
+├── wav_to_tones.py           # Convert WAV to tone arrays
+├── convert_audio_for_dfplayer.ps1  # Convert to DFPlayer MP3
+└── prepare_sd_card.ps1       # Prepare DFPlayer SD card
+```
+
+## 🤝 Contributing
+
+When adding features or fixing bugs:
+1. Follow existing code conventions (see docs/DEVELOPER_GUIDE.md)
+2. Add debug output where appropriate
+3. Update relevant documentation
+4. Test with Serial Monitor
+5. Check memory usage fits within limits
+
+## 📚 Additional Resources
+
+### Documentation
+- **[Complete Documentation Index](docs/README.md)**
+- **[Developer Guide](docs/DEVELOPER_GUIDE.md)** - Architecture, patterns, and best practices
+- **[AI Coding Agent Instructions](.github/copilot-instructions.md)** - Project context for AI assistants
+
+### External Links
+- **PlatformIO**: https://platformio.org/
+- **ESP32 Arduino**: https://github.com/espressif/arduino-esp32
+- **FastLED Library**: https://github.com/FastLED/FastLED
+- **MFRC522 Library**: https://github.com/miguelbalboa/rfid
+- **DFPlayer Mini**: https://wiki.dfrobot.com/DFPlayer_Mini_SKU_DFR0299
+
+## 📝 Recent Updates
+
+### October-November 2025
+- ✅ Sound variation system (3 sounds per character)
+- ✅ Home Assistant integration (WiFi/MQTT)
+- ✅ RFID support as alternative to IR
+- ✅ Over-the-air (OTA) updates
+- ✅ Enhanced visual feedback animations
+- ✅ Debug output system with conditional compilation
+- ✅ Improved power spike protection
+- ✅ Centralized documentation
+
+See `docs/archive/` for detailed change summaries.
+
+## 📄 License
+
+This project is open source. See individual library licenses for dependencies.
