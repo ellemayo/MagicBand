@@ -14,21 +14,33 @@
 // Currently using root directory (no folders)
 //
 // File order based on alphabetical sorting of assets/mp3_for_sd/:
-// 0001_chime.mp3           -> Track 1
-// 0002_error.mp3           -> Track 2  
-// 0003_excellent.mp3       -> Track 3
-// 0004_foolish.mp3         -> Track 4
-// 0005_hello.mp3           -> Track 5
-// 0006_operational.mp3     -> Track 6
-// 0007_startours.mp3       -> Track 7
+// 0001_addams-family.mp3   -> Track 1
+// 0002_chime.mp3           -> Track 2
+// 0003_error.mp3           -> Track 3  
+// 0004_excellent.mp3       -> Track 4
+// 0005_foolish.mp3         -> Track 5
+// 0006_hello.mp3           -> Track 6
+// 0007_imperial_march.mp3  -> Track 7
+// 0008_operational.mp3     -> Track 8
+// 0009_pirate-clip.mp3     -> Track 9
+// 0010_startours.mp3       -> Track 10
+// 0011_tap-start.mp3       -> Track 11
+// 0012_vader_breathing.mp3 -> Track 12
+// 0013_wizard_harry.mp3    -> Track 13
 enum SoundFile {
-  SOUND_CHIME = 1,
-  SOUND_ERROR = 2,
-  SOUND_EXCELLENT = 3,
-  SOUND_FOOLISH = 4,
-  SOUND_HELLO = 5,
-  SOUND_OPERATIONAL = 6,
-  SOUND_STARTOURS = 7,
+  SOUND_ADDAMS_FAMILY = 1,
+  SOUND_CHIME = 2,
+  SOUND_ERROR = 3,
+  SOUND_EXCELLENT = 4,
+  SOUND_FOOLISH = 5,
+  SOUND_HELLO = 6,
+  SOUND_IMPERIAL_MARCH = 7,
+  SOUND_OPERATIONAL = 8,
+  SOUND_PIRATE_CLIP = 9,
+  SOUND_STARTOURS = 10,
+  SOUND_TAP_START = 11,
+  SOUND_VADER_BREATHING = 12,
+  SOUND_WIZARD_HARRY = 13,
   // RFID Detection feedback sounds
   SOUND_RFID_SUCCESS = SOUND_CHIME,      // Recognized band - chime sound
   SOUND_RFID_FAIL = SOUND_ERROR          // Unknown band - error sound

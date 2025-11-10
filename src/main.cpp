@@ -29,28 +29,28 @@ unsigned long last_activation = 0;
 // All band properties in one place: ID, name, color, sounds
 BandConfig BAND_CONFIGS[] = {
   // Band 1 - Blue with Hello sound
-  { 0x27CB1805, "Band 1", CRGB::Blue, 
-    { SOUND_HELLO }, 
+  { 0x27CB1805, "August", CRGB::Blue, 
+    { SOUND_PIRATE_CLIP }, 
     1, 0 },
   
   // Band 2 - Green with Foolish sound
-  { 0xACD1E700, "Band 2", CRGB::Green, 
+  { 0xACD1E700, "Ophelia", CRGB::Green, 
     { SOUND_FOOLISH }, 
     1, 0 },
   
   // Band 3 - Purple with Operational sound
-  { 0x34567890, "Band 3", CRGB::Purple, 
-    { SOUND_OPERATIONAL }, 
+  { 0x34567890, "Evalette", CRGB::Purple, 
+    { SOUND_ADDAMS_FAMILY }, 
     1, 0 },
 
   // Band 4 - Purple with Operational sound
-  { 0x45678901, "Band 4", CRGB::Purple, 
-    { SOUND_OPERATIONAL }, 
+  { 0x45678901, "Candice", CRGB::Purple, 
+    { SOUND_WIZARD_HARRY }, 
     1, 0 },
 
   // Band 5 - Purple with Operational sound
-  { 0x56789012, "Band 5", CRGB::Purple, 
-    { SOUND_OPERATIONAL }, 
+  { 0x56789012, "Danny", CRGB::Red, 
+    { SOUND_VADER_BREATHING }, 
     1, 0 }
 };
 
@@ -119,7 +119,7 @@ void setup() {
   
   // Play startup sound if DFPlayer is ready (using chime as startup sound)
   if (dfplayer_is_ready()) {
-    play_sound_file(SOUND_CHIME);
+    play_sound_file(SOUND_STARTOURS);
   }
   
   DEBUG_PRINTLN("MagicBand RFID system ready!");
@@ -164,7 +164,7 @@ void loop() {
     
     // Play detection beep sound to indicate card detected
     if (dfplayer_is_ready()) {
-      play_sound_file(SOUND_CHIME);  // Quick beep to indicate detection started
+      play_sound_file(SOUND_TAP_START);  // Quick beep to indicate detection started
       delay(300);
     }
     
