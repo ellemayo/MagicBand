@@ -14,14 +14,6 @@
 #define RFID_SS_PIN   5
 #define RFID_RST_PIN  22
 
-// RFID Band IDs (UID stored as uint32_t for easy comparison)
-// These will be extracted from the 4-byte UID of each RFID card/band
-#define BAND_1 0x27CB1805  // Replace with actual UID from your RFID bands
-#define BAND_2 0xACD1E700  // Replace with actual UID from your RFID bands
-#define BAND_3 0x34567890  // Replace with actual UID from your RFID bands
-#define BAND_4 0x45678901  // Replace with actual UID from your RFID bands
-#define BAND_5 0x56789012  // Replace with actual UID from your RFID bands
-
 // RFID band data structure
 // Stores the UID in a format compatible with the RC522 library
 union rfid_band {

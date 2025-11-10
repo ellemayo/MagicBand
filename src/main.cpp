@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <DebugConfig.h>
 
+#include <BandConfig.h>
 #include <RFIDControl.h>
 #include <LEDControl.h>
 #include <AudioControlDFPlayer.h>
@@ -24,44 +25,47 @@ const unsigned long DETECTION_WINDOW = 3000;       // 3 second detection window 
 // Cooldown management - prevent activations too close together
 unsigned long last_activation = 0;
 
-// Band configuration structure with sound variation support
-struct BandConfig {
-  uint32_t band_id;
-  CRGB led_color;
-  uint8_t sound_files[3];        // Array of up to 3 sound file numbers
-  uint8_t num_sounds;            // Number of sounds available for this band
-  uint8_t current_sound_index;   // Current position in sound rotation
-};
-
 // Centralized band configurations with sound variations
+// All band properties in one place: ID, name, color, sounds
 BandConfig BAND_CONFIGS[] = {
-  // Band 1 (Blue) - Hello sound
-  { BAND_1, CRGB::Blue, 
+  // Band 1 - Blue with Hello sound
+  { 0x27CB1805, "Band 1", CRGB::Blue, 
     { SOUND_HELLO }, 
     1, 0 },
   
-  // Band 2 (Green) - Star Tours sound
-  { BAND_2, CRGB::Green, 
+  // Band 2 - Green with Foolish sound
+  { 0xACD1E700, "Band 2", CRGB::Green, 
     { SOUND_FOOLISH }, 
     1, 0 },
   
-  // Band 3 (Purple) - Operational sound
-  { BAND_3, CRGB::Purple, 
+  // Band 3 - Purple with Operational sound
+  { 0x34567890, "Band 3", CRGB::Purple, 
     { SOUND_OPERATIONAL }, 
     1, 0 },
 
-  // Band 4 (Purple) - Operational sound
-  { BAND_4, CRGB::Purple, 
+  // Band 4 - Purple with Operational sound
+  { 0x45678901, "Band 4", CRGB::Purple, 
     { SOUND_OPERATIONAL }, 
     1, 0 },
 
-  // Band 5 (Purple) - Operational sound
-  { BAND_5, CRGB::Purple, 
+  // Band 5 - Purple with Operational sound
+  { 0x56789012, "Band 5", CRGB::Purple, 
     { SOUND_OPERATIONAL }, 
     1, 0 }
 };
 
 const int NUM_BANDS = sizeof(BAND_CONFIGS) / sizeof(BAND_CONFIGS[0]);
+
+// Helper function to find band configuration by ID
+// Returns pointer to BandConfig or nullptr if not found
+BandConfig* find_band_config(uint32_t band_id) {
+  for (int i = 0; i < NUM_BANDS; i++) {
+    if (band_id == BAND_CONFIGS[i].band_id) {
+      return &BAND_CONFIGS[i];
+    }
+  }
+  return nullptr;
+}
 
 void setup() {
 
@@ -156,24 +160,7 @@ void loop() {
   
   // Check for RFID card detection (only when not in cooldown)
   if (is_rfid_card_present() && current_time - last_activation >= cooldown) {
-    DEBUG_PRINTLN("RFID card detected! Attempting immediate read...");
-    
-    // Try to read the card IMMEDIATELY before starting animation
-    // Give it a moment to stabilize and try a few times
-    uint32_t band_id = 0;
-    for (int initial_attempt = 0; initial_attempt < 3 && band_id == 0; initial_attempt++) {
-      if (initial_attempt > 0) {
-        delay(30); // Small delay between attempts
-      }
-      band_id = read_rfid_if_present();
-    }
-    
-    if (band_id != 0) {
-      DEBUG_PRINT("Successfully read band ID on initial detection: 0x");
-      DEBUG_PRINTLN(band_id, HEX);
-    } else {
-      DEBUG_PRINTLN("Initial read failed after 3 attempts, will retry during animation");
-    }
+    DEBUG_PRINTLN("RFID card detected! Starting read sequence...");
     
     // Play detection beep sound to indicate card detected
     if (dfplayer_is_ready()) {
@@ -184,36 +171,27 @@ void loop() {
     // Start the chase animation
     start_chase_animation();
     
-    // Run the 3-second accelerating chase animation (blocking)
+    // Run the 3-second accelerating chase animation while trying to read the band
     unsigned long animation_start = millis();
+    uint32_t band_id = 0;
     int read_attempts = 0;
-    int successful_reads = 0;
     
-    // If we already have the ID, count it as first successful read
-    if (band_id != 0) {
-      read_attempts = 1;
-      successful_reads = 1;
-    }
-    
+    // Try to read during the animation window
     while (millis() - animation_start < DETECTION_WINDOW) {
       update_chase_animation();
       
-      // Only try to read if we don't have an ID yet
-      if (band_id == 0 && millis() - animation_start > 100) { // Wait 100ms before retry attempts
+      // Only try to read if we haven't successfully read yet
+      if (band_id == 0) {
         uint32_t temp_id = read_rfid_if_present();
-        read_attempts++;
-        
         if (temp_id != 0) {
-          successful_reads++;
-          DEBUG_PRINT("Read attempt ");
-          DEBUG_PRINT(read_attempts);
-          DEBUG_PRINT(" - Got ID: 0x");
-          DEBUG_PRINTLN(temp_id, HEX);
-          
-          // Use this ID since we don't have one yet
           band_id = temp_id;
-          DEBUG_PRINTLN("ID locked in from retry attempt");
+          DEBUG_PRINT("Successfully read band ID: 0x");
+          DEBUG_PRINTLN(band_id, HEX);
+          DEBUG_PRINT("Read attempts: ");
+          DEBUG_PRINTLN(read_attempts + 1);
+          break; // Exit early once we have a valid ID
         }
+        read_attempts++;
       }
       
       delay(10); // Small delay for animation smoothness
@@ -222,60 +200,52 @@ void loop() {
     // Stop the chase animation
     stop_chase_animation();
     
-    DEBUG_PRINT("Detection complete - Read attempts: ");
-    DEBUG_PRINT(read_attempts);
-    DEBUG_PRINT(" | Successful reads: ");
-    DEBUG_PRINT(successful_reads);
-    DEBUG_PRINT(" | Final ID: 0x");
+    DEBUG_PRINT("Detection complete - Final ID: 0x");
     DEBUG_PRINTLN(band_id, HEX);
     
     // Check if we successfully read a band ID
     if (band_id != 0) {
       // Search for matching band configuration
-      bool band_found = false;
-      for (int i = 0; i < NUM_BANDS; i++) {
-        if (band_id == BAND_CONFIGS[i].band_id) {
-          DEBUG_PRINT("Known RFID Band activated (ID: 0x");
-          DEBUG_PRINT(band_id, HEX);
-          DEBUG_PRINTLN(")");
-          
-          // Show band-specific color FIRST
-          set_color(BAND_CONFIGS[i].led_color);
-          delay(200); // Brief moment to see the color
-          
-          // Play success chime while showing the color
-          if (dfplayer_is_ready()) {
-            play_sound_file(SOUND_CHIME);
-            delay(1500); // Wait for chime to play completely
-          }
-          
-          // Delay between chime and band sound (color stays on)
-          delay(500);
-          
-          // Play current sound variation
-          uint8_t sound_file = BAND_CONFIGS[i].sound_files[BAND_CONFIGS[i].current_sound_index];
-          if (dfplayer_is_ready()) {
-            play_sound_file(sound_file);
-            delay(3000); // Let the sound play
-          }
-          
-          // Fade out the color after a few seconds
-          delay(1000);
-          fade_out_leds();
-          
-          // Rotate to next sound for next activation
-          BAND_CONFIGS[i].current_sound_index = 
-            (BAND_CONFIGS[i].current_sound_index + 1) % BAND_CONFIGS[i].num_sounds;
-          
-          // Publish band activation to Home Assistant
-          publish_wand_activation(band_id);
-          
-          band_found = true;
-          break;
-        }
-      }
+      BandConfig* band = find_band_config(band_id);
       
-      if (!band_found) {
+      if (band != nullptr) {
+        DEBUG_PRINT("Known RFID Band activated: ");
+        DEBUG_PRINT(band->name);
+        DEBUG_PRINT(" (ID: 0x");
+        DEBUG_PRINT(band_id, HEX);
+        DEBUG_PRINTLN(")");
+        
+        // Show band-specific color FIRST
+        set_color(band->led_color);
+        delay(200); // Brief moment to see the color
+        
+        // Play success chime while showing the color
+        if (dfplayer_is_ready()) {
+          play_sound_file(SOUND_CHIME);
+          delay(1500); // Wait for chime to play completely
+        }
+        
+        // Delay between chime and band sound (color stays on)
+        delay(500);
+        
+        // Play current sound variation
+        uint8_t sound_file = band->sound_files[band->current_sound_index];
+        if (dfplayer_is_ready()) {
+          play_sound_file(sound_file);
+          delay(3000); // Let the sound play
+        }
+        
+        // Fade out the color after a few seconds
+        delay(1000);
+        fade_out_leds();
+        
+        // Rotate to next sound for next activation
+        band->current_sound_index = 
+          (band->current_sound_index + 1) % band->num_sounds;
+        
+        // Publish band activation to Home Assistant
+        publish_wand_activation(band_id);
+      } else {
         DEBUG_PRINT("Unknown RFID Band ID: 0x");
         DEBUG_PRINTLN(band_id, HEX);
         

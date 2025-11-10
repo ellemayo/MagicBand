@@ -1,6 +1,7 @@
 #include "HomeAssistantControl.h"
 #include <DebugConfig.h>
 #include <ArduinoJson.h>
+#include <BandConfig.h>
 
 // WiFi and MQTT clients
 WiFiClient espClient;
@@ -9,7 +10,7 @@ PubSubClient mqtt_client(espClient);
 // Global control state - initialize with defaults
 HAControlState ha_control = {
   .system_enabled = true,      // System enabled by default
-  .led_brightness = 10,        // Match LED_DEFAULT_BRIGHTNESS
+  .led_brightness = 80,        // Match LED_DEFAULT_BRIGHTNESS
   .cooldown_time = 5000,       // Match COOLDOWN_PERIOD
   .auto_close_enabled = true   // Auto-close enabled by default
 };
@@ -286,11 +287,13 @@ void publish_wand_activation(uint32_t wand_id) {
   doc["wand_id"] = wand_id;
   doc["timestamp"] = millis();
   
-  // Add wand name based on ID
-  if (wand_id == 20451) doc["name"] = "August";
-  else if (wand_id == 22171) doc["name"] = "Ophelia";
-  else if (wand_id == 22752) doc["name"] = "Evalette";
-  else doc["name"] = "Unknown";
+  // Look up band name from configuration
+  BandConfig* band = find_band_config(wand_id);
+  if (band != nullptr) {
+    doc["name"] = band->name;
+  } else {
+    doc["name"] = "Unknown";
+  }
   
   serializeJson(doc, buffer);
   mqtt_client.publish(MQTT_WAND_TOPIC, buffer);
