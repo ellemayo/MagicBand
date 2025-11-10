@@ -177,6 +177,7 @@ void loop() {
     int read_attempts = 0;
     
     // Try to read during the animation window
+    // IMPORTANT: Let animation run for full 3 seconds even if we read the band early
     while (millis() - animation_start < DETECTION_WINDOW) {
       update_chase_animation();
       
@@ -189,7 +190,7 @@ void loop() {
           DEBUG_PRINTLN(band_id, HEX);
           DEBUG_PRINT("Read attempts: ");
           DEBUG_PRINTLN(read_attempts + 1);
-          break; // Exit early once we have a valid ID
+          // Don't break - let animation finish!
         }
         read_attempts++;
       }
