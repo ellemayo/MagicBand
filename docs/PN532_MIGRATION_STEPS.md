@@ -12,7 +12,7 @@ When your PN532 NFC/RFID reader arrives, follow these steps to migrate from RC52
 ```
 PN532 -> ESP32
 --------------
-VCC -> 3.3V or 5V (check your module)
+VCC -> 3.3V or 5V (check your module) - 5V for I2C!
 GND -> GND
 SDA -> GPIO21
 SCL -> GPIO22

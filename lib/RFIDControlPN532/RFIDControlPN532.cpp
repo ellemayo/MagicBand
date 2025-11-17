@@ -5,7 +5,9 @@
 #ifdef PN532_USE_I2C
   #include <Wire.h>
   #include <Adafruit_PN532.h>
-  Adafruit_PN532 nfc(PN532_IRQ_PIN, PN532_RESET_PIN);
+  // For I2C: Create PN532 object with IRQ and RESET pins
+  // The library will use the Wire instance we initialize in setup_rfid()
+  Adafruit_PN532 nfc(-1, -1);  // IRQ and RESET not used
 #endif
 
 #ifdef PN532_USE_SPI
@@ -17,11 +19,39 @@
 // Define the global variable here (declared as extern in the header)
 rfid_band_info current_band;
 
+// ISO 15693 Detection (Magic Bands)
+// 
+// ⚠️ IMPORTANT LIMITATION:
+// The Adafruit PN532 library does NOT support ISO 15693 (Magic Band protocol).
+// While the PN532 chip itself supports ISO 15693, the library doesn't expose the 
+// required firmware commands (InCommunicateThru, InListPassiveTarget with baud 0x0A).
+//
+// For Magic Band support, you have two options:
+// 1. Use MIFARE/NFC wristbands instead (ISO 14443A) - RECOMMENDED
+//    - Work perfectly with PN532
+//    - Identical functionality for this project
+//    - See: docs/MAGIC_BAND_COMPATIBILITY.md
+//
+// 2. Switch to Seeed or elechouse PN532 library (complex code rewrite)
+//    - Has ISO 15693 support
+//    - Different API structure
+//    - More difficult integration
+//
+bool read_iso15693_uid(uint8_t *uid, uint8_t *uidLength) {
+  // Not supported by Adafruit PN532 library
+  DEBUG_PRINTLN("[PN532] ISO15693 not supported - use MIFARE wristbands instead");
+  return false;
+}
+
 void setup_rfid() {
   DEBUG_PRINTLN("[PN532] Initializing RFID reader...");
   
   #ifdef PN532_USE_I2C
     DEBUG_PRINTLN("[PN532] Using I2C mode");
+    // Initialize I2C bus with explicit pins
+    Wire.begin(21, 22);  // SDA=21, SCL=22
+    Wire.setClock(400000);  // 400kHz standard speed
+    delay(100);  // Give bus time to stabilize
   #endif
   
   #ifdef PN532_USE_SPI
@@ -55,7 +85,8 @@ void setup_rfid() {
   nfc.setPassiveActivationRetries(0xFF);
   
   DEBUG_PRINTLN("[PN532] RFID reader initialized");
-  DEBUG_PRINTLN("[PN532] Supports: ISO 14443A (MIFARE) & ISO 15693 (Magic Bands)");
+  DEBUG_PRINTLN("[PN532] ✓ Supports: ISO 14443A (MIFARE/NFC wristbands)");
+  DEBUG_PRINTLN("[PN532] ✗ Magic Bands NOT supported (see docs/MAGIC_BAND_COMPATIBILITY.md)");
   DEBUG_PRINTLN("[PN532] Scan RFID band to activate...");
 }
 
@@ -72,13 +103,13 @@ uint32_t loop_rfid() {
     current_band.is_magic_band = false;
     DEBUG_PRINTLN("[PN532] ISO 14443A card detected (MIFARE)");
   } else {
-    // Try ISO 15693 (Magic Bands)
-    success = nfc.readPassiveTargetID(PN532_MIFARE_ISO15693, uid, &uidLength, 50);
+    // Try ISO 15693 (Magic Bands) using custom implementation
+    success = read_iso15693_uid(uid, &uidLength);
     
     if (success) {
       current_band.protocol = PROTOCOL_ISO15693;
       current_band.is_magic_band = true;
-      DEBUG_PRINTLN("[PN532] ISO 15693 card detected (Magic Band!)");
+      DEBUG_PRINTLN("[PN532] ISO 15693 tag detected (Magic Band!)");
     } else {
       // No card detected
       return 0;
@@ -177,7 +208,7 @@ bool is_rfid_card_present() {
   }
   
   // Quick check for ISO 15693
-  if (nfc.readPassiveTargetID(PN532_MIFARE_ISO15693, uid, &uidLength, 10)) {
+  if (read_iso15693_uid(uid, &uidLength)) {
     return true;
   }
   
@@ -198,7 +229,7 @@ uint64_t read_rfid_if_present_64() {
 const char* get_protocol_name(RFIDProtocol protocol) {
   switch (protocol) {
     case PROTOCOL_ISO14443A:
-      return "ISO 14443A (MIFARE)";
+      return "ISO 14443A (MIFARE/NFC)";
     case PROTOCOL_ISO15693:
       return "ISO 15693 (Magic Band)";
     default:

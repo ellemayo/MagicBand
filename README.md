@@ -1,6 +1,19 @@
 # MagicBand ESP32 Interactive System
 
-> An ESP32-based magical interactive system that responds to **RFID bands** or **IR wands** with synchronized LED lighting, servo-controlled mechanical actions, and audio playback.
+> An ESP32-based magical interactive system that responds to **Disney Magic Bands**, **RFID cards**, or **IR wands** with synchronized LED lighting, servo-controlled mechanical actions, and audio playback.
+
+## ✅ Magic Band Support Confirmed!
+
+**Great news:** Disney Magic Bands (MagicBand+ and MagicBand 2) work perfectly with the PN532 reader!
+
+**Supported RFID Cards/Bands:**
+- ✅ **Disney Magic Bands** (ISO 14443A, 7-byte UID) - **TESTED AND WORKING!**
+- ✅ **MIFARE Classic 1K/4K** (ISO 14443A, 4-byte UID)
+- ✅ **MIFARE Ultralight** (ISO 14443A, 4-byte UID)
+- ✅ **NTAG213/215/216** (ISO 14443A, 7-byte UID)
+- ✅ **NFC Wristbands** (13.56MHz, ISO 14443A compatible)
+
+See **[docs/MAGIC_BAND_COMPATIBILITY.md](docs/MAGIC_BAND_COMPATIBILITY.md)** for details.
 
 ## ✨ Features
 
@@ -10,7 +23,7 @@
 - **Sound Variations**: Each character has 3 unique sounds that rotate on activation
 
 ### 🏷️ Flexible Input Methods
-- **RFID Bands**: Touch-based detection with RC522 reader (2-4cm range)
+- **RFID Bands**: Touch-based detection with PN532 reader (3-7cm range, MIFARE/NFC cards)
 - **IR Wands**: Line-of-sight MagicBand protocol detection (several meters)
 - Choose the input method that works best for your project!
 
@@ -42,6 +55,7 @@
 ### Detailed Guides
 - **[📋 Documentation Index](docs/README.md)** - Complete documentation navigation
 - **[🎵 DFPlayer Setup](DFPLAYER_SETUP_GUIDE.md)** - Configure MP3 audio playback
+- **[🏷️ RFID Compatibility](docs/MAGIC_BAND_COMPATIBILITY.md)** - **IMPORTANT:** RFID card/band compatibility
 - **[🏷️ RFID Migration Guide](docs/RFID_MIGRATION_GUIDE.md)** - Switch from IR to RFID
 - **[🏠 Home Assistant Setup](HOME_ASSISTANT_SETUP.md)** - Enable IoT features
 - **[📡 OTA Updates](docs/OTA_USAGE.md)** - Wireless firmware updates
@@ -81,19 +95,19 @@ Full IoT control and monitoring - see **[HOME_ASSISTANT_SETUP.md](HOME_ASSISTANT
 - Audio Output → GPIO25 → LM386 Amplifier → Speaker
 
 ### RFID Band Version (Recommended)
-- RFID RC522 Reader:
-  - SDA → GPIO5
-  - SCK → GPIO18 (hardware SPI)
-  - MOSI → GPIO23 (hardware SPI)
-  - MISO → GPIO19 (hardware SPI)
-  - RST → GPIO22
+- **PN532 NFC/RFID Reader** (I2C mode):
+  - SDA → GPIO21 (I2C Data)
+  - SCL → GPIO22 (I2C Clock)
   - 3.3V → 3.3V (**NOT 5V!**)
   - GND → GND
+  - **DIP Switches**: OFF-ON (I2C mode)
 - LED Strip (WS2812B) → GPIO13
 - DFPlayer Mini:
   - TX → GPIO16 (ESP32 RX)
   - RX → GPIO17 (ESP32 TX)
 - Audio Output → Amplifier → Speaker
+
+**✅ Works with Disney Magic Bands!** Tested and confirmed with MagicBand+ / MagicBand 2.
 
 **See [docs/RFID_MIGRATION_GUIDE.md](docs/RFID_MIGRATION_GUIDE.md) for complete RFID setup.**
 

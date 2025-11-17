@@ -2,7 +2,7 @@
 #include <DebugConfig.h>
 
 #include <BandConfig.h>
-#include <RFIDControl.h>
+#include <RFIDControlPN532.h>
 #include <LEDControl.h>
 #include <AudioControlDFPlayer.h>
 #include <HomeAssistantControl.h>

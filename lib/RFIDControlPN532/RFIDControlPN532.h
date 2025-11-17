@@ -52,8 +52,8 @@ union rfid_band {
 // RFID protocol types supported by PN532
 enum RFIDProtocol {
   PROTOCOL_UNKNOWN = 0,
-  PROTOCOL_ISO14443A = 1,  // MIFARE Classic, Ultralight, DESFire (4-byte UID typical)
-  PROTOCOL_ISO15693 = 2    // Magic Bands, NFC Type V (8-byte UID typical)
+  PROTOCOL_ISO14443A = 1,  // MIFARE Classic, Ultralight, DESFire, NTAG (4-7 byte UID)
+  PROTOCOL_ISO15693 = 2    // Magic Bands, NFC Type V (8-byte UID) - custom implementation
 };
 
 // Extended band info with protocol detection
@@ -78,6 +78,9 @@ uint64_t read_rfid_if_present_64();  // Full 64-bit version
 // Helper functions
 uint32_t uid_to_uint32(uint8_t *uid_bytes, uint8_t size);
 uint64_t uid_to_uint64(uint8_t *uid_bytes, uint8_t size);
+
+// ISO 15693 support functions (custom implementation)
+bool read_iso15693_uid(uint8_t *uid, uint8_t *uidLength);
 
 // Protocol-specific functions
 const char* get_protocol_name(RFIDProtocol protocol);

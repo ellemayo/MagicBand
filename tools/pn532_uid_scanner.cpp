@@ -4,7 +4,11 @@
  * This standalone utility helps you discover the UIDs of:
  * - Disney Magic Bands (ISO 15693 - 8-byte UIDs)
  * - MIFARE cards (ISO 14443A - 4-byte UIDs)
- * - Other NFC/RFID tags
+ * - NFC Type 2 tags (ISO 14443A - 7-byte UIDs)
+ * - Other ISO 14443A compatible tags
+ * 
+ * This tool includes custom ISO 15693 support for reading Magic Bands
+ * using low-level PN532 commands (inCommunicateThru).
  * 
  * Upload this sketch first, scan your cards/bands, note the UIDs, then
  * update your main project with the discovered UIDs.
@@ -39,9 +43,11 @@
   #include <Wire.h>
   #include <Adafruit_PN532.h>
   
-  #define PN532_IRQ   (-1)
-  #define PN532_RESET (-1)
-  Adafruit_PN532 nfc(PN532_IRQ, PN532_RESET);
+  #define PN532_SDA 21
+  #define PN532_SCL 22
+  
+  // Create PN532 object - will use Wire after we initialize it
+  Adafruit_PN532 nfc(-1, -1);  // IRQ and RESET not used in I2C mode
 #endif
 
 #ifdef USE_SPI_MODE
@@ -49,8 +55,19 @@
   #include <Adafruit_PN532.h>
   
   #define PN532_SS    5
-  Adafruit_PN532 nfc(PN532_SS);
+  Adafruit_PN532 nfc(PN532_SS_PIN);
 #endif
+
+// Forward declaration of ISO 15693 support function
+bool read_iso15693_uid_scanner(Adafruit_PN532 &nfc, uint8_t *uid, uint8_t *uidLength);
+
+// ISO 15693 detection (Magic Bands)
+// ⚠️ NOT SUPPORTED by Adafruit PN532 library
+// See docs/MAGIC_BAND_COMPATIBILITY.md for alternatives
+bool read_iso15693_uid_scanner(Adafruit_PN532 &nfc, uint8_t *uid, uint8_t *uidLength) {
+  // Not supported - library doesn't expose ISO 15693 commands
+  return false;
+}
 
 // ===== SETUP =====
 void setup() {
@@ -69,6 +86,15 @@ void setup() {
   #ifdef USE_SPI_MODE
     Serial.println("Communication Mode: SPI");
     Serial.println("Pins: SS=GPIO5, SCK=GPIO18, MISO=GPIO19, MOSI=GPIO23\n");
+  #endif
+  
+  // Initialize communication bus
+  Serial.print("Initializing I2C bus...");
+  #ifdef USE_I2C_MODE
+    Wire.begin(PN532_SDA, PN532_SCL);
+    Wire.setClock(400000);  // 400kHz - standard I2C speed
+    delay(100);
+    Serial.println(" done");
   #endif
   
   // Initialize PN532
@@ -110,19 +136,23 @@ void setup() {
   Serial.println("\n✓ PN532 configured successfully!");
   Serial.println("\n┌─────────────────────────────────────────────────┐");
   Serial.println("│ Supported Card Types:                           │");
-  Serial.println("│  • Disney Magic Bands (ISO 15693)               │");
-  Serial.println("│  • MIFARE Classic 1K/4K (ISO 14443A)            │");
-  Serial.println("│  • MIFARE Ultralight (ISO 14443A)               │");
-  Serial.println("│  • NTAG213/215/216 (ISO 14443A)                 │");
-  Serial.println("│  • Most NFC tags                                │");
+  Serial.println("│  ✓ MIFARE Classic 1K/4K (ISO 14443A)            │");
+  Serial.println("│  ✓ MIFARE Ultralight (ISO 14443A)               │");
+  Serial.println("│  ✓ NTAG213/215/216 (ISO 14443A)                 │");
+  Serial.println("│  ✓ NFC Type 2 tags (7-byte UID)                 │");
+  Serial.println("│  ✓ Most ISO 14443A compatible cards             │");
+  Serial.println("│  ✗ Disney Magic Bands (NOT SUPPORTED)           │");
   Serial.println("└─────────────────────────────────────────────────┘");
+  Serial.println("\n⚠️  Magic Bands require ISO 15693 support");
+  Serial.println("   Use MIFARE/NFC wristbands instead!");
+  Serial.println("   See: docs/MAGIC_BAND_COMPATIBILITY.md");
   
   Serial.println("\n📝 Instructions:");
-  Serial.println("  1. Place Magic Band or RFID card near reader (3-7cm)");
+  Serial.println("  1. Place RFID card/wristband near reader (3-7cm)");
   Serial.println("  2. Note the UID and protocol shown below");
   Serial.println("  3. Copy the 'C++ Define' line to your project");
   Serial.println("  4. Repeat for all bands/cards");
-  Serial.println("\n⏳ Waiting for cards/bands...\n");
+  Serial.println("\n⏳ Waiting for RFID cards/wristbands...\n");
 }
 
 // ===== MAIN LOOP =====
@@ -133,15 +163,20 @@ void loop() {
   const char* protocolName = "";
   bool isMagicBand = false;
   
-  // Try ISO 14443A first (MIFARE cards - most common)
+  // Try ISO 14443A first (MIFARE cards and most NFC tags)
   success = nfc.readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, &uidLength, 100);
   
   if (success) {
-    protocolName = "ISO 14443A (MIFARE)";
-    isMagicBand = false;
+    if (uidLength >= 7) {
+      protocolName = "ISO 14443A (7+ byte UID - NFC Type 2)";
+      isMagicBand = false;
+    } else {
+      protocolName = "ISO 14443A (MIFARE)";
+      isMagicBand = false;
+    }
   } else {
     // Try ISO 15693 (Magic Bands)
-    success = nfc.readPassiveTargetID(PN532_MIFARE_ISO15693, uid, &uidLength, 100);
+    success = read_iso15693_uid_scanner(nfc, uid, &uidLength);
     
     if (success) {
       protocolName = "ISO 15693 (Magic Band!)";
@@ -262,9 +297,9 @@ void loop() {
     Serial.println("  → Requires RFIDControlPN532 library");
     Serial.println("  → Use loop_rfid_64() for full UID support");
   } else {
-    Serial.println("\n✓ This is a standard MIFARE card (ISO 14443A)");
-    Serial.println("  → Works with both RC522 and PN532");
-    Serial.println("  → Use 32-bit define for compatibility");
+    Serial.println("\n✓ This is a standard MIFARE/NFC card (ISO 14443A)");
+    Serial.println("  → Works with PN532");
+    Serial.println("  → Use 32-bit or 64-bit define depending on UID length");
   }
   
   Serial.println("\n────────────────────────────────────────────────────\n");
