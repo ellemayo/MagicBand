@@ -275,16 +275,19 @@ void publish_state() {
   mqtt_client.publish(MQTT_STATE_TOPIC, buffer, true);
 }
 
-void publish_wand_activation(uint32_t wand_id) {
+void publish_wand_activation(uint64_t wand_id) {
   if (!mqtt_client.connected()) return;
   
-  ha_stats.last_wand_id = wand_id;
+  ha_stats.last_wand_id = wand_id;  // Store full 64-bit value
   ha_stats.activation_count++;
   
   StaticJsonDocument<128> doc;
   char buffer[128];
   
-  doc["wand_id"] = wand_id;
+  // Send full 64-bit ID as string to avoid JSON integer overflow
+  char wand_id_str[20];
+  sprintf(wand_id_str, "%llu", wand_id);
+  doc["wand_id"] = wand_id_str;
   doc["timestamp"] = millis();
   
   // Look up band name from configuration
@@ -299,7 +302,7 @@ void publish_wand_activation(uint32_t wand_id) {
   mqtt_client.publish(MQTT_WAND_TOPIC, buffer);
   
   DEBUG_PRINT("Published wand activation: ");
-  DEBUG_PRINTLN(wand_id);
+  DEBUG_PRINTLN(wand_id_str);
 }
 
 void publish_stats() {
@@ -312,7 +315,11 @@ void publish_stats() {
   doc["uptime"] = ha_stats.uptime;
   doc["lid_open"] = ha_stats.lid_is_open;
   doc["time_until_ready"] = ha_stats.time_until_ready;
-  doc["last_wand"] = ha_stats.last_wand_id;
+  
+  // Send last_wand as string to avoid JSON integer overflow with 64-bit values
+  char wand_id_str[20];
+  sprintf(wand_id_str, "%llu", ha_stats.last_wand_id);
+  doc["last_wand"] = wand_id_str;
   
   serializeJson(doc, buffer);
   mqtt_client.publish(MQTT_STATS_TOPIC, buffer);

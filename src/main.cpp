@@ -58,7 +58,7 @@ const int NUM_BANDS = sizeof(BAND_CONFIGS) / sizeof(BAND_CONFIGS[0]);
 
 // Helper function to find band configuration by ID
 // Returns pointer to BandConfig or nullptr if not found
-BandConfig* find_band_config(uint32_t band_id) {
+BandConfig* find_band_config(uint64_t band_id) {
   for (int i = 0; i < NUM_BANDS; i++) {
     if (band_id == BAND_CONFIGS[i].band_id) {
       return &BAND_CONFIGS[i];
@@ -173,7 +173,7 @@ void loop() {
     
     // Run the 3-second accelerating chase animation while trying to read the band
     unsigned long animation_start = millis();
-    uint32_t band_id = 0;
+    uint64_t band_id = 0;  // Use 64-bit to support both MIFARE and Magic Bands
     int read_attempts = 0;
     
     // Try to read during the animation window
@@ -183,11 +183,21 @@ void loop() {
       
       // Only try to read if we haven't successfully read yet
       if (band_id == 0) {
+        // Read and get the full 64-bit UID from current_band structure
         uint32_t temp_id = read_rfid_if_present();
         if (temp_id != 0) {
-          band_id = temp_id;
+          // For 7+ byte UIDs, use the full 64-bit UID
+          if (current_band.uid_length >= 7) {
+            band_id = current_band.uid.uid_64;
+          } else {
+            // For 4-byte UIDs, use the 32-bit value
+            band_id = temp_id;
+          }
           DEBUG_PRINT("Successfully read band ID: 0x");
-          DEBUG_PRINTLN(band_id, HEX);
+          if (current_band.uid_length >= 7) {
+            DEBUG_PRINT((uint32_t)(band_id >> 32), HEX);
+          }
+          DEBUG_PRINTLN((uint32_t)(band_id & 0xFFFFFFFF), HEX);
           DEBUG_PRINT("Read attempts: ");
           DEBUG_PRINTLN(read_attempts + 1);
           // Don't break - let animation finish!
@@ -202,7 +212,10 @@ void loop() {
     stop_chase_animation();
     
     DEBUG_PRINT("Detection complete - Final ID: 0x");
-    DEBUG_PRINTLN(band_id, HEX);
+    if (current_band.uid_length >= 7) {
+      DEBUG_PRINT((uint32_t)(band_id >> 32), HEX);
+    }
+    DEBUG_PRINTLN((uint32_t)(band_id & 0xFFFFFFFF), HEX);
     
     // Check if we successfully read a band ID
     if (band_id != 0) {
@@ -316,7 +329,7 @@ void loop() {
       
       // Publish band activation to Home Assistant
       publish_wand_activation(band_id);
-      
+
     } else {
       DEBUG_PRINTLN("Failed to read band UID during 3-second window");
       

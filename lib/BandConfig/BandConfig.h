@@ -7,7 +7,7 @@
 
 // Band configuration structure with sound variation support
 struct BandConfig {
-  uint32_t band_id;              // RFID UID (unique identifier)
+  uint64_t band_id;              // RFID UID (unique identifier) - supports both 32-bit and 64-bit UIDs
   const char* name;              // Human-readable name for Home Assistant
   CRGB led_color;                // LED color to display
   uint8_t sound_files[3];        // Array of up to 3 sound file numbers
@@ -19,7 +19,7 @@ struct BandConfig {
 extern BandConfig BAND_CONFIGS[];
 extern const int NUM_BANDS;
 
-// Helper function to find band configuration by ID
-BandConfig* find_band_config(uint32_t band_id);
+// Helper function to find band configuration by ID (accepts both 32-bit and 64-bit)
+BandConfig* find_band_config(uint64_t band_id);
 
 #endif // BAND_CONFIG_H

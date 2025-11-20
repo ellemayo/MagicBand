@@ -39,7 +39,7 @@ struct HAControlState {
 
 // Statistics to report to Home Assistant
 struct HAStats {
-  uint32_t last_wand_id;        // Last wand that was activated
+  uint64_t last_wand_id;        // Last wand that was activated (full 64-bit for Magic Bands)
   unsigned long activation_count; // Total activation count
   unsigned long uptime;         // System uptime in seconds
   bool lid_is_open;             // Current lid state
@@ -55,7 +55,7 @@ void setup_home_assistant();
 void loop_home_assistant();
 void publish_discovery_configs();
 void publish_state();
-void publish_wand_activation(uint32_t wand_id);
+void publish_wand_activation(uint64_t wand_id);
 void publish_stats();
 void reconnect_mqtt();
 void mqtt_callback(char* topic, byte* payload, unsigned int length);
