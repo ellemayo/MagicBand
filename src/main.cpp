@@ -71,19 +71,7 @@ void setup() {
 
   // Initialize Serial for debugging (non-blocking)
   Serial.begin(115200);
-  
-  // CRITICAL: Initialize LEDs FIRST before anything else
-  // This provides immediate visual feedback that the device is booting
-  // Even if other components fail, users will see the LEDs working
-  setup_leds();
-  
-  // Show immediate visual feedback - system is alive!
-  fill_solid(leds, NUM_LEDS, CRGB::Blue);
-  FastLED.setBrightness(30);
-  FastLED.show();
-  
-  // Brief delay for Serial to stabilize (non-blocking, no wait)
-  delay(100);
+  delay(100);  // Brief delay for Serial to stabilize
 
   DEBUG_PRINTLN("\n=== MagicBand (RFID) Initializing ===");
   DEBUG_PRINT("Firmware Version: ");
@@ -93,9 +81,18 @@ void setup() {
   DEBUG_PRINTLN("=========================================\n");
   DEBUG_PRINTLN("Comms enabled - beginning sensing");
 
-  // CRITICAL: Initialize RFID AFTER LEDs because FastLED can interfere with SPI
-  // FastLED.show() disables interrupts briefly which can disrupt SPI initialization
+  // CRITICAL: Initialize RFID FIRST before anything else!
+  // FastLED.show() disables interrupts which can corrupt I2C initialization
+  // We MUST initialize I2C before any other component that might interfere
   setup_rfid();
+  
+  // NOW initialize LEDs after I2C is stable
+  setup_leds();
+  
+  // Show immediate visual feedback - system is alive!
+  fill_solid(leds, NUM_LEDS, CRGB::Blue);
+  FastLED.setBrightness(30);
+  FastLED.show();
   
   // Audio Setup (DFPlayer Mini with SD card)
   // Non-blocking - if it fails, system continues without audio

@@ -5,9 +5,12 @@
 #ifdef PN532_USE_I2C
   #include <Wire.h>
   #include <Adafruit_PN532.h>
-  // For I2C: Create PN532 object with IRQ and RESET pins
-  // The library will use the Wire instance we initialize in setup_rfid()
-  Adafruit_PN532 nfc(-1, -1);  // IRQ and RESET not used
+
+  #define PN532_SDA 21
+  #define PN532_SCL 22
+  
+  // Create PN532 object - will use Wire after we initialize it
+  Adafruit_PN532 nfc(-1, -1);  // IRQ and RESET not used in I2C mode
 #endif
 
 #ifdef PN532_USE_SPI
@@ -44,21 +47,26 @@ bool read_iso15693_uid(uint8_t *uid, uint8_t *uidLength) {
 }
 
 void setup_rfid() {
-  DEBUG_PRINTLN("[PN532] Initializing RFID reader...");
+  Serial.println("[PN532] ========== RFID SETUP START ==========");
+  Serial.println("[PN532] Initializing RFID reader...");
   
   #ifdef PN532_USE_I2C
-    DEBUG_PRINTLN("[PN532] Using I2C mode");
-    // Initialize I2C bus with explicit pins
-    Wire.begin(21, 22);  // SDA=21, SCL=22
-    Wire.setClock(400000);  // 400kHz standard speed
-    delay(100);  // Give bus time to stabilize
+    Serial.println("[PN532] PN532_USE_I2C is DEFINED - Using I2C mode");
+    Serial.println("[PN532] Initializing I2C bus on SDA=GPIO21, SCL=GPIO22...");
+    
+    // Initialize I2C bus FIRST - before constructing PN532 object
+    Wire.begin(PN532_SDA, PN532_SCL);
+    Wire.setClock(400000);  // 400kHz - same as scanner
+    delay(100);
+    Serial.println("[PN532] I2C bus initialized");
   #endif
   
   #ifdef PN532_USE_SPI
-    DEBUG_PRINTLN("[PN532] Using SPI mode");
+    Serial.println("[PN532] Using SPI mode");
   #endif
   
-  // Initialize PN532
+  // Initialize PN532 - object now exists
+  Serial.println("[PN532] Initializing PN532...");
   nfc.begin();
   
   // Get firmware version to verify communication
@@ -96,7 +104,7 @@ uint32_t loop_rfid() {
   bool success = false;
   
   // Try ISO 14443A first (MIFARE cards - most common)
-  success = nfc.readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, &uidLength, 50);
+  success = nfc.readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, &uidLength, 100);
   
   if (success) {
     current_band.protocol = PROTOCOL_ISO14443A;
