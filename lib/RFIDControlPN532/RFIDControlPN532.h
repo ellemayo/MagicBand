@@ -75,6 +75,9 @@ bool is_rfid_card_present();
 uint32_t read_rfid_if_present();
 uint64_t read_rfid_if_present_64();  // Full 64-bit version
 
+// Diagnostic and status functions
+bool is_rfid_initialized();  // Check if RFID reader is ready
+
 // Helper functions
 uint32_t uid_to_uint32(uint8_t *uid_bytes, uint8_t size);
 uint64_t uid_to_uint64(uint8_t *uid_bytes, uint8_t size);

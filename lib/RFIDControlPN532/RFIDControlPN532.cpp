@@ -1,7 +1,7 @@
 #include <RFIDControlPN532.h>
 #include <DebugConfig.h>
 
-// Include PN532 library based on selected communication mode
+// PN532 library configuration
 #ifdef PN532_USE_I2C
   #include <Wire.h>
   #include <Adafruit_PN532.h>
@@ -9,54 +9,34 @@
   #define PN532_SDA 21
   #define PN532_SCL 22
   
-  // Create PN532 object - will use Wire after we initialize it
-  Adafruit_PN532 nfc(-1, -1);  // IRQ and RESET not used in I2C mode
+  // Global PN532 object (required by Adafruit library design)
+  Adafruit_PN532 nfc(-1, -1);  // IRQ and RESET pins not used in I2C mode
 #endif
 
 #ifdef PN532_USE_SPI
   #include <SPI.h>
   #include <Adafruit_PN532.h>
+  
+  #define PN532_SS_PIN 5
   Adafruit_PN532 nfc(PN532_SS_PIN);
 #endif
 
-// Define the global variable here (declared as extern in the header)
+// Global variable for current band information
 rfid_band_info current_band;
 
-// ISO 15693 Detection (Magic Bands)
-// 
-// ⚠️ IMPORTANT LIMITATION:
-// The Adafruit PN532 library does NOT support ISO 15693 (Magic Band protocol).
-// While the PN532 chip itself supports ISO 15693, the library doesn't expose the 
-// required firmware commands (InCommunicateThru, InListPassiveTarget with baud 0x0A).
-//
-// For Magic Band support, you have two options:
-// 1. Use MIFARE/NFC wristbands instead (ISO 14443A) - RECOMMENDED
-//    - Work perfectly with PN532
-//    - Identical functionality for this project
-//    - See: docs/MAGIC_BAND_COMPATIBILITY.md
-//
-// 2. Switch to Seeed or elechouse PN532 library (complex code rewrite)
-//    - Has ISO 15693 support
-//    - Different API structure
-//    - More difficult integration
-//
+// ISO 15693 not supported by Adafruit PN532 library
+// Use MIFARE/NFC wristbands instead - see docs/MAGIC_BAND_COMPATIBILITY.md
 bool read_iso15693_uid(uint8_t *uid, uint8_t *uidLength) {
-  // Not supported by Adafruit PN532 library
-  DEBUG_PRINTLN("[PN532] ISO15693 not supported - use MIFARE wristbands instead");
   return false;
 }
 
 void setup_rfid() {
   Serial.println("[PN532] ========== RFID SETUP START ==========");
-  Serial.println("[PN532] Initializing RFID reader...");
   
   #ifdef PN532_USE_I2C
-    Serial.println("[PN532] PN532_USE_I2C is DEFINED - Using I2C mode");
-    Serial.println("[PN532] Initializing I2C bus on SDA=GPIO21, SCL=GPIO22...");
-    
-    // Initialize I2C bus FIRST - before constructing PN532 object
+    Serial.print("[PN532] Initializing I2C bus...");
     Wire.begin(PN532_SDA, PN532_SCL);
-    Wire.setClock(400000);  // 400kHz - same as scanner
+    Wire.setClock(400000);
     delay(100);
     Serial.println("[PN532] I2C bus initialized");
   #endif
@@ -65,64 +45,49 @@ void setup_rfid() {
     Serial.println("[PN532] Using SPI mode");
   #endif
   
-  // Initialize PN532 - object now exists
-  Serial.println("[PN532] Initializing PN532...");
+  Serial.print("[PN532] Initializing PN532...");
   nfc.begin();
   
-  // Get firmware version to verify communication
   uint32_t versiondata = nfc.getFirmwareVersion();
+  
   if (!versiondata) {
-    DEBUG_PRINTLN("[PN532] ⚠️  ERROR: PN532 board not found!");
-    DEBUG_PRINTLN("[PN532] Check wiring and power (3.3V or 5V depending on module)");
+    Serial.println(" FAILED!");
+    DEBUG_PRINTLN("[PN532] ⚠️  ERROR: PN532 board not responding!");
+    DEBUG_PRINTLN("[PN532] System will continue WITHOUT RFID functionality");
     return;
   }
-  
-  // Print firmware version
-  DEBUG_PRINT("[PN532] ✓ Found chip PN5"); 
-  DEBUG_PRINTLN((versiondata >> 24) & 0xFF, HEX);
-  DEBUG_PRINT("[PN532] Firmware ver. "); 
-  DEBUG_PRINT((versiondata >> 16) & 0xFF, DEC); 
-  DEBUG_PRINT('.'); 
-  DEBUG_PRINTLN((versiondata >> 8) & 0xFF, DEC);
+  Serial.println(" SUCCESS!");
+  Serial.print("\n[PN532] ✓ Found chip PN5"); 
+  Serial.println((versiondata >> 24) & 0xFF, HEX);
+  Serial.print("[PN532]   Firmware version: "); 
+  Serial.print((versiondata >> 16) & 0xFF, DEC); 
+  Serial.print('.'); 
+  Serial.println((versiondata >> 8) & 0xFF, DEC);
   
   // Configure board to read RFID tags
   nfc.SAMConfig();
   
-  // Set passive activation retries (0xFF = retry forever, 0x00 = no retry)
-  // Using 0xFF for maximum compatibility with various card types
-  nfc.setPassiveActivationRetries(0xFF);
-  
-  DEBUG_PRINTLN("[PN532] RFID reader initialized");
+  DEBUG_PRINTLN("[PN532] ========== RFID SETUP COMPLETE ==========");
   DEBUG_PRINTLN("[PN532] ✓ Supports: ISO 14443A (MIFARE/NFC wristbands)");
   DEBUG_PRINTLN("[PN532] ✗ Magic Bands NOT supported (see docs/MAGIC_BAND_COMPATIBILITY.md)");
-  DEBUG_PRINTLN("[PN532] Scan RFID band to activate...");
+  DEBUG_PRINTLN("[PN532] Ready to scan RFID bands!");
 }
 
 uint32_t loop_rfid() {
   uint8_t uid[8] = {0};
   uint8_t uidLength;
-  bool success = false;
   
-  // Try ISO 14443A first (MIFARE cards - most common)
-  success = nfc.readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, &uidLength, 100);
+  // Only ISO 14443A is supported (MIFARE/NFC cards)
+  bool success = nfc.readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, &uidLength, 100);
   
-  if (success) {
-    current_band.protocol = PROTOCOL_ISO14443A;
-    current_band.is_magic_band = false;
-    DEBUG_PRINTLN("[PN532] ISO 14443A card detected (MIFARE)");
-  } else {
-    // Try ISO 15693 (Magic Bands) using custom implementation
-    success = read_iso15693_uid(uid, &uidLength);
-    
-    if (success) {
-      current_band.protocol = PROTOCOL_ISO15693;
-      current_band.is_magic_band = true;
-      DEBUG_PRINTLN("[PN532] ISO 15693 tag detected (Magic Band!)");
-    } else {
-      // No card detected
-      return 0;
-    }
+  if (!success) {
+    return 0;  // No card detected
   }
+  
+  current_band.protocol = PROTOCOL_ISO14443A;
+  current_band.is_magic_band = false;
+  DEBUG_PRINTLN("[PN532] ISO 14443A card detected (MIFARE)");
+
   
   // Store UID length
   current_band.uid_length = uidLength;
@@ -205,30 +170,19 @@ uint64_t uid_to_uint64(uint8_t *uid_bytes, uint8_t size) {
   return result;
 }
 
-// Check if ANY RFID card is currently present (lightweight check)
+// Check if RFID card is present (100ms timeout for reliable detection)
 bool is_rfid_card_present() {
   uint8_t uid[8];
   uint8_t uidLength;
-  
-  // Quick check for ISO 14443A
-  if (nfc.readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, &uidLength, 10)) {
-    return true;
-  }
-  
-  // Quick check for ISO 15693
-  if (read_iso15693_uid(uid, &uidLength)) {
-    return true;
-  }
-  
-  return false;
+  return nfc.readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, &uidLength, 100);
 }
 
-// Try to read the card if present, returns UID or 0 if failed
+// Read card if present
 uint32_t read_rfid_if_present() {
   return loop_rfid();
 }
 
-// Try to read the card if present, returns full 64-bit UID or 0 if failed
+// Read card if present (64-bit UID)
 uint64_t read_rfid_if_present_64() {
   return loop_rfid_64();
 }
@@ -248,4 +202,9 @@ const char* get_protocol_name(RFIDProtocol protocol) {
 // Check if the last detected card was a Magic Band
 bool is_magic_band_detected() {
   return current_band.is_magic_band;
+}
+
+// Check if RFID reader is initialized
+bool is_rfid_initialized() {
+  return (nfc.getFirmwareVersion() != 0);
 }

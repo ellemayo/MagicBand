@@ -81,12 +81,28 @@ void setup() {
   DEBUG_PRINTLN("=========================================\n");
   DEBUG_PRINTLN("Comms enabled - beginning sensing");
 
-  // CRITICAL: Initialize RFID FIRST before anything else!
-  // FastLED.show() disables interrupts which can corrupt I2C initialization
-  // We MUST initialize I2C before any other component that might interfere
+  // CRITICAL INITIALIZATION ORDER!
+  // I2C devices MUST be fully initialized before FastLED.show() is called
+  // FastLED.show() disables interrupts which corrupts I2C bus state
+  
+  // STEP 1: Initialize RFID COMPLETELY (including firmware handshake)
   setup_rfid();
   
-  // NOW initialize LEDs after I2C is stable
+  // Check if RFID initialized successfully
+  if (!is_rfid_initialized()) {
+    DEBUG_PRINTLN("\n========================================");
+    DEBUG_PRINTLN("⚠️  WARNING: RFID FAILED TO INITIALIZE");
+    DEBUG_PRINTLN("========================================");
+    DEBUG_PRINTLN("System will continue without RFID functionality.");
+    DEBUG_PRINTLN("Check the error messages above for troubleshooting.");
+    DEBUG_PRINTLN("You can still test LEDs, audio, and other features.");
+    DEBUG_PRINTLN("========================================\n");
+  } else {
+    DEBUG_PRINTLN("[MAIN] ✓ RFID initialized successfully!\n");
+  }
+  
+  // STEP 2: NOW safe to initialize LEDs and use FastLED.show()
+  // I2C communication is complete, so interrupt disable won't affect it
   setup_leds();
   
   // Show immediate visual feedback - system is alive!
@@ -155,8 +171,8 @@ void loop() {
   // Use HA-controlled cooldown period
   unsigned long cooldown = get_ha_cooldown();
   
-  // Check for RFID card detection (only when not in cooldown)
-  if (is_rfid_card_present() && current_time - last_activation >= cooldown) {
+  // Check for RFID card detection (only when not in cooldown AND RFID is working)
+  if (is_rfid_initialized() && is_rfid_card_present() && current_time - last_activation >= cooldown) {
     DEBUG_PRINTLN("RFID card detected! Starting read sequence...");
     
     // Play detection beep sound to indicate card detected
