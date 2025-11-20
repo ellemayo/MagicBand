@@ -44,7 +44,7 @@ BandConfig BAND_CONFIGS[] = {
     1, 0 },
 
   // Band 4 - Purple with Operational sound
-  { 0x45678901, "Candice", CRGB::Purple, 
+  { 0x045C92F2876880ULL, "Candice", CRGB::Purple, 
     { SOUND_WIZARD_HARRY }, 
     1, 0 },
 
@@ -206,15 +206,74 @@ void loop() {
     
     // Check if we successfully read a band ID
     if (band_id != 0) {
+      // Display UID in scanner format for easy identification
+      DEBUG_PRINTLN("\n╔════════════════════════════════════════════════════╗");
+      DEBUG_PRINTLN("║           RFID CARD DETECTED!                      ║");
+      DEBUG_PRINTLN("╚════════════════════════════════════════════════════╝");
+      
+      // Get full band info with protocol and UID length
+      uint8_t uid_length = current_band.uid_length;
+      
+      if (uid_length == 4) {
+        // 4-byte UID (MIFARE)
+        DEBUG_PRINTLN("Protocol: ISO 14443A (MIFARE)");
+        DEBUG_PRINT("UID Length: ");
+        DEBUG_PRINT(uid_length);
+        DEBUG_PRINTLN(" bytes");
+        DEBUG_PRINT("UID Bytes: ");
+        for (uint8_t i = 0; i < uid_length; i++) {
+          if (current_band.uid.uid_bytes[i] < 0x10) DEBUG_PRINT("0");
+          DEBUG_PRINT(current_band.uid.uid_bytes[i], HEX);
+          if (i < uid_length - 1) DEBUG_PRINT(" ");
+        }
+        DEBUG_PRINTLN();
+        DEBUG_PRINT("UID as uint32_t: ");
+        DEBUG_PRINT(band_id);
+        DEBUG_PRINT(" (decimal) = 0x");
+        DEBUG_PRINT(band_id, HEX);
+        DEBUG_PRINTLN(" (hex)");
+        DEBUG_PRINTLN();
+        DEBUG_PRINT(">>> C++ Define: #define BAND_NAME 0x");
+        DEBUG_PRINT(band_id, HEX);
+        DEBUG_PRINTLN("UL");
+      } else if (uid_length >= 7) {
+        // 7+ byte UID (Magic Band / NFC Type 2)
+        DEBUG_PRINTLN("Protocol: ISO 14443A (7+ byte UID - NFC Type 2)");
+        DEBUG_PRINT("UID Length: ");
+        DEBUG_PRINT(uid_length);
+        DEBUG_PRINTLN(" bytes");
+        DEBUG_PRINT("UID Bytes: ");
+        for (uint8_t i = 0; i < uid_length; i++) {
+          if (current_band.uid.uid_bytes[i] < 0x10) DEBUG_PRINT("0");
+          DEBUG_PRINT(current_band.uid.uid_bytes[i], HEX);
+          if (i < uid_length - 1) DEBUG_PRINT(" ");
+        }
+        DEBUG_PRINTLN();
+        DEBUG_PRINT("UID as uint64_t: ");
+        DEBUG_PRINT((uint32_t)(current_band.uid.uid_64 >> 32), HEX);
+        DEBUG_PRINT((uint32_t)(current_band.uid.uid_64 & 0xFFFFFFFF), HEX);
+        DEBUG_PRINTLN(" (hex)");
+        DEBUG_PRINTLN();
+        DEBUG_PRINT(">>> C++ Define (64-bit): #define BAND_NAME 0x");
+        for (uint8_t i = 0; i < uid_length; i++) {
+          if (current_band.uid.uid_bytes[i] < 0x10) DEBUG_PRINT("0");
+          DEBUG_PRINT(current_band.uid.uid_bytes[i], HEX);
+        }
+        DEBUG_PRINTLN("ULL");
+        DEBUG_PRINTLN();
+        DEBUG_PRINT(">>> C++ Define (32-bit): #define BAND_NAME 0x");
+        DEBUG_PRINT(band_id, HEX);
+        DEBUG_PRINTLN("UL");
+      }
+      
+      DEBUG_PRINTLN("────────────────────────────────────────────────────\n");
+      
       // Search for matching band configuration
       BandConfig* band = find_band_config(band_id);
       
       if (band != nullptr) {
-        DEBUG_PRINT("Known RFID Band activated: ");
-        DEBUG_PRINT(band->name);
-        DEBUG_PRINT(" (ID: 0x");
-        DEBUG_PRINT(band_id, HEX);
-        DEBUG_PRINTLN(")");
+        DEBUG_PRINT("✓ Known RFID Band: ");
+        DEBUG_PRINTLN(band->name);
         
         // Show band-specific color FIRST
         set_color(band->led_color);
@@ -243,12 +302,9 @@ void loop() {
         // Rotate to next sound for next activation
         band->current_sound_index = 
           (band->current_sound_index + 1) % band->num_sounds;
-        
-        // Publish band activation to Home Assistant
-        publish_wand_activation(band_id);
       } else {
-        DEBUG_PRINT("Unknown RFID Band ID: 0x");
-        DEBUG_PRINTLN(band_id, HEX);
+        DEBUG_PRINTLN("⚠️  Unknown RFID Band - Not in configuration");
+        DEBUG_PRINTLN("   Copy the define above and add to BandConfig.h");
         
         // Flash red and play error sound
         flash_color(CRGB::Red, 3, 200);
@@ -257,6 +313,10 @@ void loop() {
           delay(1500);
         }
       }
+      
+      // Publish band activation to Home Assistant
+      publish_wand_activation(band_id);
+      
     } else {
       DEBUG_PRINTLN("Failed to read band UID during 3-second window");
       
